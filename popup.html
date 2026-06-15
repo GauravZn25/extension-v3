@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Downloader Settings</title>
+    <link rel="stylesheet" href="fonts.css">
+    <style>
+        :root {
+            /* Two-tone palette mirrors options.css: warm cream + ink ground.
+               Primary/success used to be blue/green — collapsed into ink so
+               the popup speaks the same monochrome language as the full
+               settings page. Keep these in sync if you tweak one. */
+            --bg: #fbfaf7;
+            --bg-elev: #f1ede4;
+            --text-primary: #1f2330;
+            --text-secondary: #5b6273;
+            --text-tertiary: #a1a6b3;
+            --border: #e6e0d4;
+            --border-strong: #cdc6b8;
+            --primary: var(--text-primary);
+            --primary-hover: #2c3142;
+            --primary-soft: var(--bg-elev);
+            --success: var(--text-primary);
+            --success-soft: var(--bg-elev);
+            --shadow-sm: 0 1px 2px rgba(120, 100, 80, 0.05);
+            --shadow-md: 0 6px 18px rgba(120, 100, 80, 0.08);
+            accent-color: var(--text-primary);
+            color-scheme: light;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1a1a1f;
+                --bg-elev: #25252c;
+                --text-primary: #f5f4f0;
+                --text-secondary: #b8b6b0;
+                --text-tertiary: #7a7770;
+                --border: #36363d;
+                --border-strong: #4a4a52;
+                /* In dark mode the primary-button hover is a slightly muted
+                   cream so the surface still reads as "lifted" without going
+                   pure white. */
+                --primary-hover: #d8d6cf;
+                color-scheme: dark;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            width: 340px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 14px 18px 12px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Header icon — the actual extension icon (icon128.png). Same image
+           the user sees pinned to their toolbar, the manifest entry, the
+           Chrome Web Store listing, etc. No card chrome around it; the
+           icon design carries its own surface. */
+        .header-icon {
+            width: 34px;
+            height: 34px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .header-icon img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        .header-text h1 {
+            margin: 0;
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .header-sub {
+            margin: 2px 0 0 0;
+            font-size: 10.5px;
+            font-weight: 500;
+            color: var(--text-tertiary);
+            line-height: 1.2;
+        }
+
+        .body-wrapper {
+            padding: 12px 18px 14px 18px;
+        }
+
+        .section {
+            margin-bottom: 10px;
+        }
+
+        .section:last-of-type {
+            margin-bottom: 6px;
+        }
+
+        .section-title {
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0;
+            text-transform: none;
+            color: var(--text-primary);
+            margin: 0 0 8px 0;
+        }
+
+        .field {
+            margin-bottom: 8px;
+        }
+
+        .field:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 8px 14px;
+            font-size: 12.5px;
+            font-weight: 500;
+            border: 1px solid var(--border-strong);
+            /* Same fully-rounded pill silhouette as on the options page. */
+            border-radius: 999px;
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-family: inherit;
+            transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+        }
+
+        input[type="text"]:hover,
+        select:hover {
+            border-color: var(--text-secondary);
+            background-color: var(--bg-elev);
+        }
+
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--text-primary);
+            background-color: var(--bg-elev);
+            box-shadow: 0 0 0 3px rgba(31, 35, 48, 0.10);
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            /* Chevron stroke is the page's ink colour (light mode) or pale
+               cream (dark mode) — the SVG is stamped twice so the right one
+               wins via prefers-color-scheme. */
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231f2330' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 36px;
+            /* The trigger label is the current value, not editable text —
+               disable selection so click-to-open doesn't accidentally
+               highlight characters. */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        @media (prefers-color-scheme: dark) {
+            select {
+                background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23f5f4f0' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            }
+        }
+        option {
+            background-color: var(--bg);
+            color: var(--text-primary);
+        }
+
+        .helper-text {
+            font-size: 10.5px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            line-height: 1.35;
+        }
+
+        .row-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        /* Action row is horizontal and right-aligned: gear icon for
+           Customize Naming, then Save (primary). Save sizes to its content
+           with a comfortable min-width — no longer stretches to fill the
+           row, so the popup ends with a compact pill on the right rather
+           than a 300px-wide button. */
+        .actions {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+            align-items: stretch;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .actions .btn-primary {
+            flex: 0 0 auto;
+            width: auto;
+            min-width: 110px;
+            padding: 10px 26px;
+        }
+        .actions .btn-secondary {
+            width: auto;
+            flex-shrink: 0;
+            padding: 0 14px;
+        }
+        /* When Customize is icon-only, the label gets visually hidden but
+           kept in the DOM for screen-reader access. */
+        .actions .btn-secondary .label {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        button {
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: var(--bg);
+            border: none;
+            padding: 10px;
+            font-size: 13.5px;
+            font-weight: 700;
+            border-radius: 999px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        /* "Saved" state shares the primary-hover surface — the checkmark
+           animation alone signals success without injecting a celebratory
+           green into a two-tone page. */
+        .btn-primary.saved {
+            background-color: var(--primary-hover);
+            pointer-events: none;
+            transform: scale(1.02);
+        }
+
+        .btn-primary.saved:hover {
+            background-color: var(--primary-hover);
+            transform: scale(1.02);
+        }
+
+        .btn-primary .check-icon {
+            display: none;
+        }
+
+        .btn-primary.saved .check-icon {
+            display: inline-block;
+            animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .btn-primary.saved .label-default {
+            display: none;
+        }
+
+        .btn-primary .label-saved {
+            display: none;
+        }
+
+        .btn-primary.saved .label-saved {
+            display: inline-block;
+        }
+
+        @keyframes pop {
+            0%   { transform: scale(0); opacity: 0; }
+            60%  { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @media (prefers-color-scheme: dark) {
+            /* In dark mode the "ink" colour is now pale, so the button
+               foreground gets the dark page bg as its text colour to keep
+               contrast — same reversal as the Save button on options.css. */
+            .btn-primary { color: var(--bg); }
+            .btn-primary.saved { color: var(--bg); }
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-strong);
+            padding: 9px 14px;
+            font-size: 12.5px;
+            font-weight: 600;
+            border-radius: 999px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-elev);
+            border-color: var(--text-secondary);
+        }
+
+        .btn-secondary svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        #status {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            min-height: 14px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            margin-top: 4px;
+        }
+
+        #status.show {
+            opacity: 1;
+        }
+
+        /* Live preview area — no card chrome, no labels, no meta. The
+           button alone, centred, on the popup background. Whatever theme
+           the user picks, the button looks like itself. */
+        .preview-card {
+            margin-top: 6px;
+            padding: 8px 0 4px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Preview button — mirrors content.js theme rules. The themes inject
+           hover and transform styles, but since this button is purely a
+           preview (you can't click it; it has tabindex=-1) we kill all
+           interactivity at the wrapper level. pointer-events: none stops
+           the hover state from ever firing, so the preview always shows the
+           theme's resting appearance — what you'll actually see on Reddit. */
+        .preview-btn {
+            cursor: default;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+            font-weight: 600;
+            border: none;
+            user-select: none;
+            pointer-events: none;
+            transition: none;
+        }
+        .preview-btn[data-size="compact"] { padding: 7px 14px; font-size: 12px; }
+        .preview-btn[data-size="normal"]  { padding: 10px 20px; font-size: 13px; }
+        .preview-btn[data-size="large"]   { padding: 13px 28px; font-size: 14.5px; }
+
+        /* Per-theme styles for .preview-btn are injected by popup.js at startup
+           via buildThemeStyles() in themes.js. Single source of truth shared
+           with content.js. */
+
+        /* ---- Custom dropdown widget --------------------------------------
+           Same shape and behaviour as the widget on the options page: every
+           native <select> is wrapped at startup with a custom trigger + body-
+           anchored listbox so the OS-rendered blue selection highlight never
+           appears. The native select stays in the DOM (visually hidden) so
+           form state and chrome.storage round-trips keep working. */
+        .custom-select {
+            position: relative;
+            width: 100%;
+        }
+        .custom-select select {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+        .custom-select-trigger {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border-strong);
+            background-color: var(--bg);
+            color: var(--text-primary);
+            font-size: 12.5px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            text-align: left;
+            outline: none;
+            transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .custom-select-trigger:hover {
+            border-color: var(--text-secondary);
+            background-color: var(--bg-elev);
+        }
+        .custom-select.is-open .custom-select-trigger,
+        .custom-select-trigger:focus-visible {
+            border-color: var(--text-primary);
+            background-color: var(--bg-elev);
+            box-shadow: 0 0 0 3px rgba(31, 35, 48, 0.10);
+        }
+        .custom-select-label {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .custom-select-chevron {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+            transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .custom-select.is-open .custom-select-chevron {
+            transform: rotate(180deg);
+        }
+        .custom-select-listbox {
+            position: fixed;
+            list-style: none;
+            margin: 0;
+            padding: 6px;
+            background: var(--bg);
+            border: 1px solid var(--border-strong);
+            border-radius: 14px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+            z-index: 9000;
+            max-height: 280px;
+            overflow-y: auto;
+            opacity: 0;
+            transform: translateY(-4px);
+            pointer-events: none;
+            transition: opacity 0.14s ease, transform 0.14s cubic-bezier(0.4, 0, 0.2, 1);
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .custom-select-listbox::-webkit-scrollbar { display: none; }
+        .custom-select-listbox.is-open {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .custom-select-option {
+            padding: 8px 12px;
+            border-radius: 9px;
+            font-family: 'Quicksand', 'Segoe UI', sans-serif;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: background-color 0.12s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .custom-select-option:hover { background-color: var(--bg-elev); }
+        .custom-select-option[aria-selected="true"] {
+            background-color: var(--bg-elev);
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <!-- Use the real extension icon (the one pinned in the toolbar).
+             Same image as manifest icons + the Chrome Web Store listing,
+             so the popup header instantly identifies as our extension. -->
+        <div class="header-icon">
+            <img src="icon128.png" alt="" aria-hidden="true">
+        </div>
+        <div class="header-text">
+            <h1>Reddit Picture Gallery Downloader</h1>
+            <p class="header-sub">Quick settings · <span id="popup-version">v3.0</span></p>
+        </div>
+    </div>
+
+    <div class="body-wrapper">
+
+        <div class="section">
+            <h2 class="section-title">Where they go 📁</h2>
+            <div class="field">
+                <label for="folderName">Base Download Folder</label>
+                <input type="text" id="folderName" placeholder="reddit_downloads" />
+            </div>
+            <div class="field">
+                <label for="downloadMode">Download Mode</label>
+                <select id="downloadMode">
+                    <option value="folder">Download as a Folder</option>
+                    <option value="zip">Zip Posts</option>
+                    <option value="individual">Download Individuals (Direct to base)</option>
+                </select>
+                <!-- modeDescription kept in the DOM for popup.js (which writes
+                     into it on change) but visually hidden — the option label
+                     is already self-explanatory and the helper text was the
+                     biggest single space-eater. -->
+                <div id="modeDescription" class="helper-text" hidden></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Button vibe 🎨</h2>
+            <div class="field">
+                <label for="customButtonLabel">Button Label <span style="font-weight: 400; color: var(--text-tertiary); font-size: 11px;">(optional)</span></label>
+                <input type="text" id="customButtonLabel" placeholder="🚀 Download Gallery" maxlength="40" />
+            </div>
+            <div class="field">
+                <label for="buttonTheme">Style</label>
+                <select id="buttonTheme">
+                    <option value="theme-native">Native Reddit (Orange Pill)</option>
+                    <option value="theme-premium">Premium Black (Sleek &amp; Clean)</option>
+                    <option value="theme-modern">Modern Blue (Trustworthy)</option>
+                    <option value="theme-minimal">Minimal Light (Clean Outline)</option>
+                    <option value="theme-glass">Glass (Frosted Translucent)</option>
+                    <option value="theme-gradient">Gradient (Purple Aurora)</option>
+                    <option value="theme-neon">Neon (Cyberpunk Glow)</option>
+                    <option value="theme-soft">Soft (Neumorphic)</option>
+                    <option value="theme-mint">Mint (Fresh Green Pill)</option>
+                    <option value="theme-sunset">Sunset (Warm Gradient)</option>
+                    <option value="theme-mono">Mono (Outline Only)</option>
+                </select>
+            </div>
+            <div class="row-2">
+                <div class="field">
+                    <label for="buttonPosition">Position</label>
+                    <select id="buttonPosition">
+                        <option value="bottom-right">Bottom Right</option>
+                        <option value="bottom-left">Bottom Left</option>
+                        <option value="top-right">Top Right</option>
+                        <option value="top-left">Top Left</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="buttonSize">Size</label>
+                    <select id="buttonSize">
+                        <option value="compact">Compact</option>
+                        <option value="normal">Normal</option>
+                        <option value="large">Large</option>
+                    </select>
+                </div>
+            </div>
+            <div class="preview-card">
+                <button id="previewBtn" class="preview-btn" type="button" tabindex="-1">
+                    <span class="preview-emoji">🚀</span>
+                    <span class="preview-label-text">Download Gallery</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="saveBtn" class="btn-primary" type="button">
+                <span class="check-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </span>
+                <span class="label-default">Save</span>
+                <span class="label-saved">Saved</span>
+            </button>
+            <!-- Icon-only secondary action — title attribute carries the
+                 description for tooltip/screen-readers, .label span is
+                 visually hidden but available to assistive tech. -->
+            <button id="customizeNamingBtn" class="btn-secondary" type="button" title="Customize Naming &amp; Formulas">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                <span class="label">Customize Naming &amp; Formulas</span>
+            </button>
+        </div>
+
+        <div id="status"></div>
+    </div>
+    <script src="themes.js"></script>
+    <script src="popup.js"></script>
+</body>
+
+</html>

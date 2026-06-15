@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Tips · Reddit Picture Gallery Downloader</title>
+    <link rel="icon" type="image/png" sizes="48x48" href="icon48.png">
+    <link rel="shortcut icon" type="image/png" href="icon128.png">
+    <link rel="stylesheet" href="fonts.css">
+    <style>
+        :root {
+            /* Light mode: warm cream + ink, same as options.css. One accent
+               (camel beige) used sparingly — for the tip marker, the recipe
+               subhead, and the footer link. Everything else is paper + ink. */
+            --bg-main: #fbfaf7;
+            --bg-soft: #f1ede4;
+            --text-primary: #1f2330;
+            --text-secondary: #5b6273;
+            --text-tertiary: #a1a6b3;
+            --border-color: #e6e0d4;
+            --hairline: rgba(31, 35, 48, 0.08);
+
+            --accent: #b18a5e;
+            --accent-soft: rgba(177, 138, 94, 0.12);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                /* Dark mode: a soft, warm-tinted dark-grey rather than
+                   near-black. Lighter than the previous build so the page
+                   feels welcoming and a touch cozy instead of severe. */
+                --bg-main: #22222a;
+                --bg-soft: #2d2d36;
+                --text-primary: #f5f4f0;
+                --text-secondary: #c0bdb6;
+                --text-tertiary: #8b8881;
+                --border-color: #3a3a44;
+                --hairline: rgba(255, 255, 255, 0.08);
+
+                --accent: #dbb481;
+                --accent-soft: rgba(219, 180, 129, 0.14);
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body { margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+            min-height: 100vh;
+            color: var(--text-primary);
+            background-color: var(--bg-main);
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.55;
+            padding: 64px 6% 96px 6%;
+        }
+
+        /* Single-column reading layout, capped at a comfortable line length
+           so prose doesn't sprawl across a wide screen. */
+        .page-wrapper {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        /* Header — soft, warm, inviting. Same handwritten overline as the
+           options page's "live preview." card. */
+        .page-header {
+            margin-bottom: 64px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 32px;
+            transition: color 0.2s, gap 0.2s;
+        }
+        .back-link svg {
+            width: 14px;
+            height: 14px;
+            transition: transform 0.2s;
+        }
+        .back-link:hover {
+            color: var(--text-primary);
+            gap: 10px;
+        }
+        .back-link:hover svg {
+            transform: translateX(-2px);
+        }
+
+        .hero-overline {
+            display: inline-block;
+            font-family: 'Caveat', 'Fredoka', cursive;
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 0 0 4px 0;
+            line-height: 1;
+            transform: rotate(-1.5deg);
+        }
+        h1 {
+            margin: 0 0 16px 0;
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: clamp(36px, 5vw, 54px);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.02;
+            color: var(--text-primary);
+        }
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 16.5px;
+            margin: 0;
+            line-height: 1.65;
+        }
+
+        /* Tips list — vertical, typography-driven, no card chrome and no
+           coloured borders. Each tip is a short article separated from the
+           next by an almost-invisible hairline. */
+        .tips-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .tip {
+            padding: 48px 0;
+            border-top: 1px solid var(--hairline);
+        }
+        .tip:first-child {
+            border-top: none;
+            padding-top: 8px;
+        }
+        .tip:last-child {
+            padding-bottom: 8px;
+        }
+
+        /* Tip marker — "tip 01." in handwritten Caveat, slightly tilted.
+           Lowercase, no all-caps shouting; same cute marker-pen style as
+           the "live preview." label on the options page. */
+        .tip-marker {
+            margin-bottom: 10px;
+        }
+        .tip-marker-text {
+            display: inline-block;
+            font-family: 'Caveat', 'Fredoka', cursive;
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1;
+            transform: rotate(-1deg);
+            letter-spacing: 0.01em;
+        }
+
+        .tip h2 {
+            margin: 0 0 16px 0;
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: clamp(24px, 2.6vw, 28px);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .tip p {
+            margin: 0 0 16px 0;
+            font-size: 15.5px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+        .tip p:last-of-type {
+            margin-bottom: 0;
+        }
+
+        /* "Set this up." subhead + numbered list. No boxed background, no
+           coloured border. Handwritten Caveat in the accent colour matches
+           the tip marker, so the page reads as one consistent voice. */
+        .recipe-heading {
+            margin: 24px 0 10px 0;
+            font-family: 'Caveat', 'Fredoka', cursive;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0;
+            color: var(--accent);
+            line-height: 1;
+        }
+        .recipe-steps {
+            margin: 0;
+            padding-left: 22px;
+            counter-reset: step;
+        }
+        .recipe-steps li {
+            margin: 0 0 8px 0;
+            line-height: 1.6;
+            color: var(--text-primary);
+            font-size: 15px;
+        }
+        .recipe-steps li:last-child { margin-bottom: 0; }
+        .recipe-steps li::marker {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* Inline accent for pill names ("Subreddit", "Title", "Unique ID")
+           and mode tags ("Folder Mode", etc.). These used to be button-like
+           pills with a border and a different colour each — read as awkward
+           buttons stuck in prose. Replaced with a soft beige highlight that
+           feels like a gentle marker swipe over the text: no border, no
+           rounded box, just a tinted background and the accent colour. */
+        .pill-chip,
+        .mode-tag {
+            display: inline;
+            padding: 0 4px;
+            border-radius: 4px;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 600;
+            font-family: inherit;
+            font-size: inherit;
+            border: 0;
+            white-space: nowrap;
+        }
+        /* The "Unique ID" reference used to use a separate red palette to
+           match the settings page's red pill — but on the tips page it just
+           reads as a button. Collapsed back into the single beige accent
+           so the whole page speaks one colour. */
+        .pill-chip.id { /* same as base */ }
+
+        kbd {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 6px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border-color);
+            border-bottom-width: 2px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            vertical-align: 1px;
+        }
+
+        code {
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 13px;
+            background: var(--bg-soft);
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            padding: 1px 6px;
+            color: var(--text-primary);
+        }
+
+        .page-footer {
+            margin-top: 56px;
+            padding-top: 32px;
+            border-top: 1px solid var(--hairline);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .page-footer a {
+            color: var(--accent);
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 1.5px solid var(--accent);
+            padding-bottom: 1px;
+            transition: opacity 0.2s;
+        }
+        .page-footer a:hover {
+            opacity: 0.7;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 36px 6% 64px 6%; }
+            .page-header { margin-bottom: 40px; }
+            .tip { padding: 36px 0; }
+            .tip h2 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-wrapper">
+
+        <header class="page-header">
+            <a href="welcome.html" class="back-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to welcome
+            </a>
+            <span class="hero-overline">a few favourites...</span>
+            <h1>Tips &amp; recipes</h1>
+            <p class="page-subtitle">Seven small habits that pay off forever. Each one is a pattern I keep coming back to when I'm bulk-saving Reddit galleries — copy any of them straight into your own setup.</p>
+        </header>
+
+        <div class="tips-list">
+
+            <article class="tip">
+                <div class="tip-marker">
+                    <span class="tip-marker-text">tip one.</span>
+                </div>
+                <h2>One folder per subreddit</h2>
+                <p>Every gallery from <em>r/photography</em> lands in the same <code>photography/</code> folder regardless of which post it came from. Build the folder formula with just one pill — <span class="pill-chip">Subreddit</span> — and you're done.</p>
+                <h3 class="recipe-heading">set this up.</h3>
+                <ol class="recipe-steps">
+                    <li>Open the settings page → <span class="mode-tag">Folder Mode</span></li>
+                    <li>In <strong>Folder Naming Formula</strong>, drop only <span class="pill-chip">Subreddit</span></li>
+                    <li>In <strong>Image Filename Formula</strong>, use <span class="pill-chip">Title</span> + <span class="pill-chip">Index</span> so the individual images stay distinguishable</li>
+                </ol>
+            </article>
+
+            <article class="tip">
+                <div class="tip-marker">
+                    <span class="tip-marker-text">tip two.</span>
+                </div>
+                <h2>Never overwrite a file again</h2>
+                <p>Two posts with the same title (or no title at all) downloaded into the same folder will normally collide. Add a <span class="pill-chip id">Unique ID</span> pill at the end of the image filename and every download is guaranteed unique.</p>
+                <h3 class="recipe-heading">set this up.</h3>
+                <ol class="recipe-steps">
+                    <li>In <strong>Image Filename Formula</strong>, drop <span class="pill-chip id">Unique ID</span> at the end</li>
+                    <li>Pick the format you like under <strong>Format tweaks → Unique ID Format</strong> (hex, numeric, timestamp...)</li>
+                </ol>
+            </article>
+
+            <article class="tip">
+                <div class="tip-marker">
+                    <span class="tip-marker-text">tip three.</span>
+                </div>
+                <h2>Group by upload date</h2>
+                <p>Want a chronological archive — everything uploaded on a given day in one folder? Put <span class="pill-chip">Upload Date</span> in your folder formula. Use <code>Year, Month, Day</code> so folders sort cleanly in File Explorer.</p>
+                <h3 class="recipe-heading">set this up.</h3>
+                <ol class="recipe-steps">
+                    <li>Open <span class="mode-tag">Folder Mode</span></li>
+                    <li>Drop <span class="pill-chip">Upload Date</span> as the first pill in <strong>Folder Naming Formula</strong></li>
+                    <li>Under <strong>Format tweaks → Date Format</strong>, choose <code>Year, Month, Day</code></li>
+                </ol>
+            </article>
+
+            <article class="tip">
+                <div class="tip-marker">
+                    <span class="tip-marker-text">tip four.</span>
+                </div>
+                <h2>One file to share the whole gallery</h2>
+                <p>Switch to <span class="mode-tag">ZIP Mode</span> and a 12-image post becomes a single <code>.zip</code> you can drag into Discord, attach to email, or upload anywhere. Recipients unzip once and they have the entire post intact.</p>
+                <h3 class="recipe-heading">set this up.</h3>
+                <ol class="recipe-steps">
+                    <li>Click the extension's puzzle icon → <strong>Download Mode → Zip Posts</strong></li>
+                    <li>(Optional) Open the settings page → <span class="mode-tag">ZIP Mode</span> → tweak the archive name formula</li>
+                </ol>
+            </article>
+
+            <article class="tip">
+                <div class="tip-marker">
+                    <span class="tip-marker-text">tip five.</span>
+                </div>
+                <h2>Move your setup to another machine</h2>
+                <p>Spent an hour perfecting your naming formula? Don't redo it on your laptop. Export your config to a JSON file, copy it across, and import it on the other browser — all your formulas, themes, and toggles land identical.</p>
+                <h3 class="recipe-heading">set this up.</h3>
+                <ol class="recipe-steps">
+                    <li>Settings page → <strong>Backup &amp; reset</strong> → <strong>Export Settings</strong></li>
+                    <li>Move the downloaded <code>.json</code> to the other computer</li>
+                    <li>Settings page on that machine → <strong>Import Settings</strong> → pick the file</li>
+                </ol>
+            </article>
+
+            <article class="tip">
+                <div class="tip-marker">
+                    <span class="tip-marker-text">tip six.</span>
+                </div>
+                <h2>Download without touching the mouse</h2>
+                <p>While you're scrolling Reddit, hit <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> on any gallery post to start the download. The combo is deliberately uncommon — most browsers don't bind it, so it sidesteps the address-bar shortcut on plain Alt + D. Stays quiet while you're typing in comment boxes or the search bar.</p>
+                <h3 class="recipe-heading">set this up.</h3>
+                <ol class="recipe-steps">
+                    <li>Settings page → top toggle <strong>"Enable Alt + Shift + D keyboard shortcut"</strong> is on by default</li>
+                    <li>If you find any conflict in your particular setup, the toggle turns the shortcut off cleanly</li>
+                </ol>
+            </article>
+
+            <article class="tip">
+                <div class="tip-marker">
+                    <span class="tip-marker-text">tip seven.</span>
+                </div>
+                <h2>Edit the custom-title prompt faster</h2>
+                <p>When the custom title prompt opens with the post's title pre-filled, you don't have to nudge the cursor one character at a time. Hold <kbd>Ctrl</kbd> with <kbd>←</kbd> or <kbd>→</kbd> to jump a whole word at a time — saves a lot of arrow-key tapping on long titles.</p>
+                <h3 class="recipe-heading">when this helps.</h3>
+                <ol class="recipe-steps">
+                    <li>Settings page → toggle <strong>"Prompt for Custom Title before downloading"</strong> on</li>
+                    <li>Click Download Gallery — the prompt opens with the existing title pre-filled</li>
+                    <li>Use <kbd>Ctrl</kbd> + <kbd>←</kbd> / <kbd>→</kbd> to land your cursor between words instantly, then edit just the part you want</li>
+                </ol>
+            </article>
+
+        </div>
+
+        <footer class="page-footer">
+            Got an idea for a tip? Open an issue on <a href="https://github.com/GauravZn/reddit-downloader" target="_blank" rel="noopener">GitHub</a> — happy to add it.
+        </footer>
+
+    </div>
+
+</body>
+</html>

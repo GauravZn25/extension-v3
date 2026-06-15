@@ -1,0 +1,1080 @@
+/* Quicksand for body, Fredoka for chunky friendly headings — both via the
+   <link> in options.html. The local Lexend Deca .ttf was retired with v2.2. */
+
+:root {
+    /* Two-tone palette: warm cream background + ink-dark foreground.
+       Everything you see on the chrome (icons, pills, buttons, tabs, dropdowns)
+       borrows from these two ends — the in-between greys are just opacity
+       layers on top of the bg. The Reddit mock-post is the one exception:
+       it preserves the orange community icon since it's a representation of
+       the real reddit.com page, not part of the options-page chrome. */
+    --bg-color: #fbfaf7;
+    --bg-elev: #f1ede4;
+    --bg-card: #ffffff;
+    --text-primary: #1f2330;
+    --text-secondary: #5b6273;
+    --text-tertiary: #a1a6b3;
+    --border-color: #e6e0d4;
+    --border-strong: #cdc6b8;
+
+    /* Reddit mock-post only — kept so the dummy post still reads as Reddit. */
+    --reddit-orange: #ff7a45;
+
+    /* Pills + accents all collapse to monochrome ink. Hover/active states
+       differ only in opacity, never in hue. */
+    --pill-bg: #ece6d8;
+    --pill-text: var(--text-primary);
+    --pill-border: #d8d1c0;
+    --pill-hover-bg: #e0d9c8;
+
+    --pill-id-bg: #1f2330;
+    --pill-id-text: #fbfaf7;
+    --pill-id-border: #1f2330;
+
+    --input-bg: #ffffff;
+    --shadow-sm: 0 1px 2px rgba(120, 100, 80, 0.05);
+    --shadow-md: 0 6px 18px rgba(120, 100, 80, 0.08);
+    --shadow-lg: 0 16px 40px rgba(120, 100, 80, 0.14);
+
+    /* `accent-color` retints native form controls (checkboxes, radios, and —
+       in newer Chromium — the option highlight inside an open <select>) away
+       from system blue. Single-property fix; far less work than rebuilding
+       every dropdown from scratch. */
+    accent-color: var(--text-primary);
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-color: #1a1a1f;
+        --bg-elev: #25252c;
+        --bg-card: #2a2a31;
+        --text-primary: #f5f4f0;
+        --text-secondary: #b8b6b0;
+        --text-tertiary: #7a7770;
+        --border-color: #36363d;
+        --border-strong: #4a4a52;
+
+        --pill-bg: #2d2d34;
+        --pill-text: var(--text-primary);
+        --pill-border: #4a4a52;
+        --pill-hover-bg: #36363f;
+
+        --pill-id-bg: #f5f4f0;
+        --pill-id-text: #1a1a1f;
+        --pill-id-border: #f5f4f0;
+
+        --input-bg: #1f1f24;
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+        --shadow-md: 0 6px 18px rgba(0,0,0,0.4);
+        --shadow-lg: 0 16px 40px rgba(0,0,0,0.5);
+
+        color-scheme: dark;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+}
+
+h1 {
+    font-family: 'Fredoka', 'Quicksand', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+}
+p { color: var(--text-secondary); margin: 0; font-size: 14px; }
+h2 {
+    font-family: 'Fredoka', 'Quicksand', sans-serif;
+    font-size: 15px;
+    letter-spacing: 0;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+    font-weight: 600;
+    text-transform: none;
+}
+
+* { -ms-overflow-style: none; scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+*::-webkit-scrollbar { width: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+.section { margin-bottom: 24px; }
+.section-helper { font-size: 13px; color: var(--text-secondary); margin: 0 0 14px 0; line-height: 1.55; }
+
+.split-layout { display: flex; width: 100%; height: 100vh; overflow: hidden; }
+
+.left-panel {
+    flex: 0 0 400px;
+    /* Same background as the right panel — no elevation tint. The cards
+       inside (preview-summary, mock-post) carry their own bg-card surface
+       so they still stand out. Page reads as one unified canvas instead of
+       two side-by-side rectangles in slightly different shades. */
+    background-color: var(--bg-color);
+    border-right: 1px solid var(--border-color);
+    padding: 28px 28px 28px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    gap: 14px;
+    /* Sized so both the live-preview tree and the mock post fit without
+       scrolling at any reasonable viewport height. */
+    overflow: hidden;
+}
+
+.right-panel {
+    flex: 1; display: flex; flex-direction: column; padding: 36px 56px;
+    background-color: var(--bg-color);
+    overflow-y: auto;
+}
+
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    gap: 20px;
+}
+
+.save-wrapper { display: flex; align-items: center; gap: 14px; }
+
+.mock-post-card {
+    width: 100%; max-width: 360px;
+    background-color: #ffffff;
+    color: #000000;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: var(--shadow-lg);
+}
+
+.mock-header { margin-bottom: 12px; }
+.community-wrapper, .user-wrapper { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.com-icon-css { width: 22px; height: 22px; border-radius: 50%; background-color: var(--reddit-orange); color: white; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.user-pic { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.mock-sub { font-weight: 600; color: #111827; font-size: 13px; }
+.mock-author { font-size: 12px; color: #4b5563; }
+.mock-title { font-size: 15px; font-weight: 500; margin-bottom: 12px; color: #000000; }
+.mock-image img { width: 100%; border-radius: 14px; display: block; max-height: 400px; object-fit: cover; }
+
+/* Carousel inside the mock post. Three peacock images slide horizontally on
+   arrow click; transition is a single transform on the track so it stays
+   smooth even with large images.
+
+   `object-fit: contain` shows the entire image (no cropping) — any
+   letterbox bars sit on the dark backdrop and blend with it. The 1:1
+   square keeps total panel height short enough that the whole left
+   column fits without scroll on standard laptop displays. */
+.mock-gallery {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    aspect-ratio: 1 / 1;
+    background: #0e0e10;
+}
+.gallery-track {
+    display: flex;
+    height: 100%;
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+/* Each slide carries the contained foreground image AND a blurred copy of
+   the same image as ambient backdrop. Apple Music / iOS Photos / Spotify
+   "now playing" all use this trick — letterbox bars become a context-matched
+   blur instead of dead black space. */
+.gallery-slide {
+    position: relative;
+    flex: 0 0 100%;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0e0e10;
+}
+.gallery-slide::before {
+    content: '';
+    position: absolute;
+    /* Slight outset so the blur radius doesn't reveal hard edges. */
+    inset: -8%;
+    background: var(--bg) center / cover no-repeat;
+    filter: blur(28px) saturate(1.15) brightness(0.55);
+    z-index: 0;
+}
+.gallery-img {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+/* Unified bottom-right control cluster: prev arrow • counter • next arrow,
+   all inside one translucent dark pill. Mirrors the "compact transport"
+   pattern used by Apple Photos / Linear / Stripe Dashboard — keeps the
+   image surface uninterrupted by floating widgets and concentrates all
+   navigation into a single coherent control. */
+.gallery-controls {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: rgba(20, 20, 22, 0.62);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    padding: 3px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    user-select: none;
+}
+.gallery-nav {
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: transparent;
+    color: #ffffff;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.18s ease, opacity 0.18s ease;
+    font-family: inherit;
+    font-weight: 600;
+    padding: 0;
+}
+.gallery-nav svg { width: 14px; height: 14px; display: block; }
+.gallery-nav:hover { background: rgba(255, 255, 255, 0.16); }
+.gallery-nav:active { background: rgba(255, 255, 255, 0.10); }
+/* Linear (non-wrapping) carousel — fade the arrow you can't go past so the
+   pill keeps a constant width and the counter doesn't jump around. */
+.gallery-nav.is-hidden {
+    opacity: 0.32;
+    pointer-events: none;
+}
+.gallery-counter {
+    color: rgba(255, 255, 255, 0.95);
+    padding: 0 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    min-width: 32px;
+    text-align: center;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+.tab-link {
+    background: transparent; color: var(--text-secondary); border: none; padding: 0 0 12px 0;
+    font-size: 16px; font-weight: 700; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+    font-family: inherit;
+    margin-bottom: -1px;
+}
+.tab-link:hover { color: var(--text-primary); }
+.tab-link.active { color: var(--text-primary); border-bottom: 2px solid var(--text-primary); }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* Per-mode explainer that sits at the top of each panel — switches with the active tab. */
+.mode-description {
+    padding: 14px 18px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+.mode-description strong { color: var(--text-primary); font-weight: 600; }
+.mode-description code {
+    background: var(--bg-card);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+/* Visual break between formula-builder area and the fallback-rule grid below it. */
+.section-divider {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 20px 0;
+}
+
+/* Live preview tree on the left panel — single flat card, no inner panels.
+   Header is just text-on-padding (no bg, no divider). Each row is a single
+   line: the body of the filename truncates with an ellipsis but the suffix
+   (".jpg", ".zip", "/") is always pinned visible so you can tell file types
+   apart at a glance. The full name is on the title attribute for hover.
+   Mirrors background.js's download path. */
+.preview-summary {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    width: 100%;
+    box-shadow: var(--shadow-sm);
+    padding: 14px 16px 14px;
+}
+
+.preview-summary-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 10px;
+}
+/* Cute handwritten label — Caveat is a free Google Font that reads as a
+   marker scrawl. The warm tan colour ("camel" in light, "wheat" in dark)
+   anchors the page's two-tone palette without introducing a saturated hue;
+   it just feels like part of the cream paper. */
+.preview-summary-label {
+    font-family: 'Caveat', 'Fredoka', cursive;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #b18a5e;
+    line-height: 1;
+}
+@media (prefers-color-scheme: dark) {
+    .preview-summary-label { color: #dbb481; }
+}
+.preview-summary-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+}
+
+.preview-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 3px 0;
+    line-height: 1.4;
+    position: relative;
+    min-width: 0;
+}
+.preview-row.preview-indent-1 { padding-left: 22px; }
+.preview-row.preview-indent-2 { padding-left: 40px; }
+
+/* Faint vertical guide lines suggesting tree depth. */
+.preview-row.preview-indent-1::before,
+.preview-row.preview-indent-2::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border-color);
+    opacity: 0.7;
+}
+.preview-row.preview-indent-2::after {
+    content: '';
+    position: absolute;
+    left: 27px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border-color);
+    opacity: 0.7;
+}
+
+.preview-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Icons inherit currentColor — each row's text colour drives the stroke
+       so the visual hierarchy (base dim, folder bold, image medium) carries
+       through icons + names together with no extra rules. */
+    color: inherit;
+}
+.preview-icon svg { width: 100%; height: 100%; display: block; }
+/* Pass each row's text colour into the icon's currentColor. */
+.preview-row.is-base .preview-icon { color: var(--text-tertiary); }
+.preview-row.is-folder .preview-icon,
+.preview-row.is-archive .preview-icon { color: var(--text-primary); }
+.preview-row.is-image .preview-icon { color: var(--text-secondary); }
+
+/* Two-span layout for filenames: body truncates with ellipsis, suffix
+   (".jpg" / ".zip" / "/") is always visible. Without this the most
+   identifying part of the name (the extension) is the first thing to hide. */
+.preview-name {
+    flex: 1;
+    min-width: 0;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 12px;
+    color: var(--text-primary);
+    font-weight: 500;
+    display: flex;
+    align-items: baseline;
+    white-space: nowrap;
+}
+.preview-name-body {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 1;
+    min-width: 0;
+}
+.preview-name-suffix {
+    flex-shrink: 0;
+    /* Subtler than the body so the eye locks onto the descriptive portion of
+       the filename first; the extension still reads but doesn't compete. */
+    color: var(--text-tertiary);
+    font-weight: 500;
+}
+
+/* Hierarchy: base path is supporting context (small, dim), the folder/archive
+   line is the headline (bold), and individual images sit underneath at normal
+   weight. Reads top-to-bottom as "context > what you get > the files inside". */
+.preview-row.is-base .preview-name {
+    font-size: 11.5px;
+    color: var(--text-tertiary);
+}
+.preview-row.is-folder .preview-name,
+.preview-row.is-archive .preview-name {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.preview-row.is-image .preview-name {
+    color: var(--text-secondary);
+}
+
+/* Builder dropzones */
+.builder-group { margin-bottom: 16px; }
+.builder-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+.helper-text { font-size: 11px; color: var(--text-tertiary); font-weight: 400; font-style: italic; }
+
+.pill-container { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; border-radius: 16px; min-height: 56px; }
+.toolbox-container { background-color: var(--bg-elev); padding: 14px; margin-bottom: 0; border: 1px solid var(--border-color); }
+/* Dropzones: solid hairline border instead of busy dashes — quieter, lets
+   the pills inside breathe. */
+.drop-area { background-color: var(--bg-card); border: 1px solid var(--border-color); }
+/* No hover effect on drop zones — Sortable.js handles drag-over styling natively. */
+
+.pill {
+    background-color: var(--pill-bg); color: var(--pill-text); padding: 9px 18px; border-radius: 999px;
+    cursor: grab; user-select: none; font-weight: 600; font-size: 13px; border: 1px solid var(--pill-border); transition: all 0.15s;
+}
+.pill:active { cursor: grabbing; }
+.pill:hover { background-color: var(--pill-hover-bg); transform: translateY(-1px) scale(1.03); box-shadow: var(--shadow-sm); }
+.pill.unique-id { background-color: var(--pill-id-bg); color: var(--pill-id-text); border-color: var(--pill-id-border); }
+.pill.custom-text-pill { background-color: transparent; color: var(--text-secondary); border: 1.5px dashed var(--border-strong); cursor: pointer; }
+.pill.custom-text-pill:hover { border-color: var(--text-primary); background-color: var(--bg-elev); color: var(--text-primary); transform: translateY(-1px) scale(1.03); }
+
+.pill.user-typed-text {
+    background-color: var(--bg-elev);
+    color: var(--text-primary);
+    border: 1px dashed var(--border-strong);
+    cursor: pointer;
+    min-width: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.pill.user-typed-text:hover { background-color: var(--pill-hover-bg); border-color: var(--text-secondary); color: var(--text-primary); }
+
+.pill-input { background-color: transparent; color: var(--text-primary); border: none; font-size: 13px; font-weight: 600; padding: 0; margin: 0; outline: none; width: auto; min-width: 40px; font-family: inherit; }
+
+/* Per-mode rules — just the grid, no wrapper card. The hr above
+   (.section-divider) already separates "formula" from "rules". */
+.fallback-logic {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 22px;
+    margin-top: 4px;
+}
+
+/* Element Format Options — distinct grouped section */
+.format-options-section {
+    margin-top: 32px;
+    padding: 26px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+}
+.format-options-section h2 { margin-bottom: 4px; }
+.format-options-section .section-helper { margin-bottom: 18px; }
+
+.format-settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.setting-group, .rule-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.placeholder-input {
+    margin-top: 8px;
+    font-size: 12.5px;
+}
+.rule-group.placeholder-hidden .placeholder-input { display: none; }
+.setting-group label, .rule-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+select, input[type="text"] {
+    width: 100%;
+    padding: 11px 18px;
+    /* Fully rounded — picks up the same pill silhouette as the buttons and
+       chips elsewhere on the page. */
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+}
+select {
+    padding-right: 38px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231f2330' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    text-overflow: ellipsis;
+    /* The dropdown trigger label is the current value, not editable text —
+       letting the user double-click to highlight it just adds noise when
+       they're trying to click-to-open. Inputs (text fields) stay selectable. */
+    user-select: none;
+    -webkit-user-select: none;
+}
+select:hover, input[type="text"]:hover {
+    border-color: var(--text-secondary);
+    background-color: var(--bg-elev);
+}
+select:focus, input[type="text"]:focus {
+    border-color: var(--text-primary);
+    background-color: var(--bg-elev);
+    /* Grey focus ring (single foreground colour at low opacity), never blue. */
+    box-shadow: 0 0 0 3px rgba(31, 35, 48, 0.10);
+}
+/* Native <option> styling is still here as a fallback, but every <select> on
+   the page is wrapped at runtime by enhanceSelect() with a custom widget
+   below, so the OS-rendered popup never actually appears. The native select
+   stays in the DOM (hidden) so existing read/write logic (chrome.storage,
+   form values, change events) keeps working unchanged. */
+option {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* ------------------------------------------------------------------------
+   Custom dropdown widget — fully CSS-controlled, zero OS chrome.
+
+   The native <select> is visually hidden but kept in the DOM so the existing
+   getValue / setValue logic in options.js works unchanged. A trigger button
+   shows the current label; clicking opens a listbox that's appended to
+   <body> with position: fixed (escapes the right-panel overflow:auto clip).
+   Every part is paint-controlled by us — no system blue, no system fonts,
+   no platform-specific dropdown rendering. */
+.custom-select {
+    position: relative;
+    width: 100%;
+}
+.custom-select select {
+    /* Hide the native control without removing it from the form. */
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.custom-select-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 11px 16px 11px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    outline: none;
+    transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+}
+.custom-select-trigger:hover {
+    border-color: var(--text-secondary);
+    background-color: var(--bg-elev);
+}
+.custom-select.is-open .custom-select-trigger,
+.custom-select-trigger:focus-visible {
+    border-color: var(--text-primary);
+    background-color: var(--bg-elev);
+    box-shadow: 0 0 0 3px rgba(31, 35, 48, 0.10);
+}
+.custom-select-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.custom-select-chevron {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.custom-select.is-open .custom-select-chevron {
+    transform: rotate(180deg);
+}
+.custom-select-listbox {
+    position: fixed;
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    z-index: 9000;
+    max-height: 280px;
+    overflow-y: auto;
+    /* Body-anchored fixed positioning means the listbox can't be clipped by
+       the scrolling right-panel. Position is set in JS on every open. */
+    opacity: 0;
+    transform: translateY(-4px);
+    pointer-events: none;
+    transition: opacity 0.14s ease, transform 0.14s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Hide the scrollbar — the listbox still scrolls (mouse wheel, trackpad,
+       arrow keys, focus-from-keyboard) but the bar itself is invisible.
+       Keeps the popup looking clean on long option lists. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.custom-select-listbox::-webkit-scrollbar {
+    display: none;
+}
+.custom-select-listbox.is-open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+.custom-select-option {
+    padding: 9px 14px;
+    border-radius: 10px;
+    font-family: 'Quicksand', 'Segoe UI', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+    /* Long option text (e.g. "Timestamp (1733123456)") could push the
+       listbox wider than the viewport-cap on max-width, but the cap stops
+       width growth — so single-line + ellipsis keeps options tidy. The
+       listbox itself stretches up to its trigger's width, never beyond. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.custom-select-option:hover {
+    background-color: var(--bg-elev);
+}
+.custom-select-option[aria-selected="true"] {
+    background-color: var(--bg-elev);
+    font-weight: 700;
+}
+
+/* Floating toast — bigger, animated, with checkmark */
+.toast {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-30px);
+    background-color: var(--text-primary);
+    color: var(--bg-color);
+    padding: 14px 22px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success {
+    background-color: var(--text-primary);
+    color: var(--bg-color);
+}
+.toast .toast-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.toast.success .toast-icon { display: flex; }
+.toast .toast-icon svg { width: 14px; height: 14px; stroke: currentColor; }
+
+/* Save button — ink on cream. Saved state inverts to a subtle elevated grey
+   instead of a celebratory green; the checkmark animation alone signals
+   success without injecting a third hue into the page. */
+.action-btn {
+    background-color: var(--text-primary);
+    color: var(--bg-color);
+    border: none;
+    padding: 11px 26px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+}
+.action-btn:hover {
+    background-color: #2c3142;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+.action-btn:active { transform: translateY(0); }
+.action-btn .check-icon { display: none; width: 14px; height: 14px; }
+.action-btn .label-saved { display: none; }
+.action-btn.saved { background-color: #2c3142; pointer-events: none; }
+.action-btn.saved:hover { background-color: #2c3142; }
+.action-btn.saved .label-default { display: none; }
+.action-btn.saved .label-saved { display: inline; }
+.action-btn.saved .check-icon {
+    display: inline-block;
+    animation: check-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes check-pop {
+    0%   { transform: scale(0); opacity: 0; }
+    60%  { transform: scale(1.4); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-color-scheme: dark) {
+    .action-btn { color: var(--bg-color); background-color: var(--text-primary); }
+    .action-btn:hover { background-color: #d8d6cf; }
+    .action-btn.saved { background-color: #d8d6cf; color: var(--bg-color); }
+    .action-btn.saved:hover { background-color: #d8d6cf; }
+    .mock-post-card { box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+}
+
+/* Info-icon tooltips on labels */
+.info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    margin-left: 6px;
+    border-radius: 50%;
+    background-color: var(--border-color);
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: help;
+    position: relative;
+    line-height: 1;
+}
+.info-icon:hover { background-color: var(--text-tertiary); color: var(--bg-card); }
+.info-icon::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: #f9fafb;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: normal;
+    width: max-content;
+    max-width: 240px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 100;
+    box-shadow: var(--shadow-md);
+    text-transform: none;
+    letter-spacing: normal;
+}
+.info-icon::before {
+    content: "";
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1f2937;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 100;
+}
+.info-icon:hover::after, .info-icon:hover::before { opacity: 1; }
+@media (prefers-color-scheme: dark) {
+    .info-icon::after { background: #f3f4f6; color: #111827; }
+    .info-icon::before { border-top-color: #f3f4f6; }
+}
+
+/* Tools / footer section */
+.tools-section {
+    margin-top: 28px;
+    padding: 22px 24px 24px 24px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    margin-bottom: 24px;
+}
+.tools-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+.tool-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+.tool-btn:hover {
+    background-color: var(--bg-elev);
+    border-color: var(--text-secondary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+.tool-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+/* Reset is destructive but the colour palette is monochrome — we lean on
+   the confirmation dialog (and the word "Reset") to communicate severity,
+   not a red border. The button just looks like the others. */
+.tool-btn-danger { color: var(--text-primary); border-color: var(--border-strong); }
+.tool-btn-danger:hover { background-color: var(--bg-elev); border-color: var(--text-primary); }
+
+/* Tips link — anchor styled to match the surrounding tool buttons. The
+   inset cream-tinted background nudges it slightly forward of the border-only
+   buttons so it reads as a positive "discover" action rather than "manage
+   your config". text-decoration: none so it doesn't underline like a link. */
+.tool-btn-tips {
+    text-decoration: none;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+.tool-btn-tips:hover {
+    background-color: var(--bg-elev);
+    border-color: var(--text-primary);
+}
+
+/* Confirmation modal */
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.40);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9998;
+    backdrop-filter: blur(3px);
+}
+.confirm-overlay.show { display: flex; }
+.confirm-dialog {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 24px 26px;
+    max-width: 400px;
+    width: calc(100vw - 40px);
+    box-shadow: var(--shadow-lg);
+}
+.confirm-dialog h3 { margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: var(--text-primary); text-transform: none; letter-spacing: 0; }
+.confirm-dialog p { margin: 0 0 18px 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; }
+.confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.confirm-actions button {
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+}
+.confirm-cancel { background: transparent; color: var(--text-primary); border-color: var(--border-strong); }
+.confirm-cancel:hover { background-color: var(--bg-elev); }
+.confirm-danger { background: var(--text-primary); color: var(--bg-color); }
+.confirm-danger:hover { background: #2c3142; }
+
+/* Behavior settings (top toggles) */
+.behavior-settings {
+    margin-bottom: 28px;
+    padding: 22px 24px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+}
+.toggle-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+}
+.toggle-group + .toggle-group {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+.toggle-text { display: flex; flex-direction: column; flex: 1; }
+.toggle-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.toggle-desc { font-size: 12.5px; color: var(--text-secondary); line-height: 1.5; }
+
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--border-strong);
+    transition: background-color 0.25s;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px; width: 18px;
+    left: 3px; bottom: 3px;
+    background-color: #ffffff;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-sm);
+}
+/* "On" state uses a soft mint green so the active state reads as active
+   at a glance — the previous ink-on-ink looked off/disabled in peripheral
+   vision. Same green as the existing theme-mint button so the page stays
+   inside its own palette. Slightly lifted in dark mode for legibility. */
+input:checked + .slider { background-color: #10b981; }
+@media (prefers-color-scheme: dark) {
+    input:checked + .slider { background-color: #34d399; }
+}
+input:checked + .slider:before { transform: translateX(20px); }
+.slider.round { border-radius: 24px; }
+.slider.round:before { border-radius: 50%; }
+
+/* --- Footer --- Sits at the bottom of the right-panel scroll area. Stays
+   visually quiet: small font, secondary text colour, hairline divider above.
+   We don't want the version line competing with the actual settings UI. */
+.page-footer {
+    margin-top: 36px;
+    padding: 16px 0 8px 0;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    flex-wrap: wrap;
+}
+.footer-left { display: flex; align-items: center; gap: 8px; }
+.footer-right { display: flex; align-items: center; gap: 14px; }
+.footer-app { color: var(--text-secondary); font-weight: 500; }
+.footer-version {
+    background: var(--bg-elev);
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+.footer-stat { color: var(--text-secondary); }
+.footer-kofi {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    border-bottom: 1px dashed var(--border-strong);
+    padding-bottom: 1px;
+    transition: color 0.15s, border-color 0.15s;
+}
+.footer-kofi:hover { color: #10b981; border-bottom-color: #10b981; }
+

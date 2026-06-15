@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome!</title>
+    <link rel="icon" type="image/png" sizes="48x48" href="icon48.png">
+    <link rel="shortcut icon" type="image/png" href="icon128.png">
+    <link rel="stylesheet" href="fonts.css">
+    <script src="welcome.js"></script>
+    <style>
+        :root {
+            /* Pure Unified Light Theme */
+            --bg-main: #FFFFFF;
+            --text-primary: #111827;
+            --text-secondary: #6B7280;
+            --border-color: #E5E7EB;
+            --border-hover: #D1D5DB;
+            
+            --accent-primary: #000000;
+            --accent-primary-text: #FFFFFF;
+            
+            /* Card Icon Colors */
+            --icon-setup-bg: rgba(16, 185, 129, 0.1);
+            --icon-setup-color: #059669;
+            --icon-name-bg: rgba(245, 158, 11, 0.1);
+            --icon-name-color: #D97706;
+            --icon-zip-bg: rgba(59, 130, 246, 0.1);
+            --icon-zip-color: #2563EB;
+            --icon-paint-bg: rgba(139, 92, 246, 0.1);
+            --icon-paint-color: #7C3AED;
+            
+            --success-bg: rgba(16, 185, 129, 0.04);
+            --success-border: rgba(16, 185, 129, 0.2);
+            --success-text: #065F46;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                /* Pure Unified Dark Theme (Pure Black) */
+                --bg-main: #000000;
+                --text-primary: #F9FAFB;
+                --text-secondary: #9CA3AF;
+                --border-color: #27272A;
+                --border-hover: #3F3F46;
+                
+                --accent-primary: #FFFFFF;
+                --accent-primary-text: #000000;
+                
+                /* Card Icon Colors */
+                --icon-setup-bg: rgba(52, 211, 153, 0.1);
+                --icon-setup-color: #34D399;
+                --icon-name-bg: rgba(251, 191, 36, 0.1);
+                --icon-name-color: #FBBF24;
+                --icon-zip-bg: rgba(96, 165, 250, 0.1);
+                --icon-zip-color: #60A5FA;
+                --icon-paint-bg: rgba(167, 139, 250, 0.1);
+                --icon-paint-color: #A78BFA;
+
+                --success-bg: rgba(16, 185, 129, 0.05);
+                --success-border: rgba(52, 211, 153, 0.2);
+                --success-text: #34D399;
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+            color: var(--text-primary);
+            background-color: var(--bg-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .layout-wrapper { display: flex; width: 100%; height: 100%; }
+
+        .hero-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 8%;
+            /* Removed the border-right to make it completely seamless */
+        }
+
+        .hero-icon { width: 56px; height: 56px; margin-bottom: 24px; border-radius: 12px; }
+        h1 { margin: 0 0 12px 0; font-family: 'Fredoka', 'Quicksand', sans-serif; font-size: clamp(30px, 3.6vw, 46px); font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
+        .subtitle { color: var(--text-secondary); font-size: clamp(15px, 1.2vw, 18px); max-width: 400px; margin: 0 0 32px 0; line-height: 1.5; }
+
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+
+        .primary-btn {
+            background: var(--accent-primary); color: var(--accent-primary-text); border: none;
+            padding: 14px 30px; border-radius: 999px; font-size: 15px; font-weight: 700; cursor: pointer; transition: transform 0.2s, opacity 0.2s;
+            font-family: inherit;
+        }
+        .primary-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+        .secondary-btn {
+            background: transparent; color: var(--text-primary); border: 1.5px solid var(--border-hover);
+            padding: 14px 30px; border-radius: 999px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+            font-family: inherit;
+        }
+        .secondary-btn:hover { background: var(--border-color); }
+
+        .features-section {
+            flex: 1.1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 8%;
+            gap: 16px;
+        }
+
+        .feature-item {
+            background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 22px;
+            padding: 24px; display: flex; gap: 18px; transition: all 0.2s ease-in-out;
+        }
+        .feature-item:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04); }
+
+        .feature-item.setup { background: var(--success-bg); border-color: var(--success-border); }
+        .feature-item.setup:hover { border-color: var(--success-text); }
+
+        .icon-box { display: flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 16px; flex-shrink: 0; }
+        .icon-box.setup-icon { background: var(--icon-setup-bg); color: var(--icon-setup-color); }
+        .icon-box.name-icon { background: var(--icon-name-bg); color: var(--icon-name-color); }
+        .icon-box.zip-icon { background: var(--icon-zip-bg); color: var(--icon-zip-color); }
+        .icon-box.paint-icon { background: var(--icon-paint-bg); color: var(--icon-paint-color); }
+
+        .content h3 { margin: 0 0 6px 0; font-family: 'Fredoka', 'Quicksand', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 0; }
+        .feature-item.setup .content h3 { color: var(--success-text); }
+        .content p { margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+
+        .badge {
+            background: rgba(128, 128, 128, 0.1); color: var(--text-primary); padding: 2px 8px;
+            border-radius: 6px; font-family: monospace; font-size: 12px; border: 1px solid rgba(128, 128, 128, 0.2);
+        }
+        .feature-item.setup .badge { background: var(--icon-setup-bg); color: var(--success-text); border-color: var(--success-border); }
+
+        /* "See more tips" CTA — sits below the three feature cards as a
+           lightweight inline link with an arrow. Not a button (no card chrome,
+           no border) so it reads as a soft secondary action — the cards are
+           the headline content, this is the "if you want to go deeper". */
+        .more-tips-link {
+            margin-top: 4px;
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 4px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s ease, gap 0.2s ease;
+        }
+        .more-tips-link svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s ease;
+        }
+        .more-tips-link:hover {
+            color: var(--text-primary);
+            gap: 12px;
+        }
+        .more-tips-link:hover svg {
+            transform: translateX(2px);
+        }
+
+        @media (max-width: 960px) {
+            body { overflow-y: auto; }
+            .layout-wrapper { flex-direction: column; height: auto; }
+            .hero-section { border-bottom: 1px solid var(--border-color); padding: 10% 8%; }
+            .features-section { padding: 10% 8%; }
+            .primary-btn, .secondary-btn { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout-wrapper">
+        <div class="hero-section">
+            <img src="icon128.png" alt="Extension Icon" class="hero-icon">
+            <h1>You're all set! 🎉</h1>
+            <p class="subtitle">Reddit Picture Gallery Downloader is installed and ready. Open any Reddit gallery and you'll see the Download button waiting in the corner.</p>
+            
+            <div class="btn-group">
+                <button class="primary-btn" id="closeWelcomeBtn">Got it, close tab</button>
+                <button class="secondary-btn" id="customizeNamingBtnWelcome">⚙️ Customize Naming</button>
+            </div>
+        </div>
+
+        <div class="features-section">
+            
+            <div class="feature-item setup">
+                <div class="icon-box setup-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </div>
+                <div class="content">
+                    <h3>Crucial browser setup</h3>
+                    <p>To prevent clicking "Save" for every single image, go to <span class="badge">chrome://settings/downloads</span> and turn <strong>OFF</strong> the toggle for <em>"Ask where to save each file before downloading"</em>.</p>
+                </div>
+            </div>
+
+            <!-- NEW: Custom Naming Feature Description -->
+            <div class="feature-item">
+                <div class="icon-box name-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                </div>
+                <div class="content">
+                    <h3>Customize your naming conventions</h3>
+                    <p>Click the "Customize Naming" button to open the builder. You can define exact dynamic filename rules for individual images, folders, and ZIP archives using drag-and-drop variables.</p>
+                </div>
+            </div>
+
+            <div class="feature-item">
+                <div class="icon-box zip-icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 8v13H3V8"></path><path d="M1 3h22v5H1z"></path><path d="M10 12h4"></path>
+                    </svg>
+                </div>
+                <div class="content">
+                    <h3>Sharing via Discord or Email?</h3>
+                    <p>Click the extension's puzzle icon in your toolbar and change your download mode to <strong>ZIP</strong>. Bundle entire galleries into one single file to share them effortlessly. 🤘</p>
+                </div>
+            </div>
+
+            <!-- "See more tips" CTA — opens the standalone tips page in a new
+                 tab. The href is relative; resolves to chrome-extension://.../tips.html
+                 since this page is itself an extension page. -->
+            <a href="tips.html" target="_blank" rel="noopener" class="more-tips-link">
+                <span class="more-tips-text">See more tips</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+            </a>
+
+        </div>
+    </div>
+</body>
+</html>
