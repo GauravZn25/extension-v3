@@ -111,7 +111,13 @@ function enhanceSelect(nativeSelect) {
     }
 
     function closeOnScroll(e) {
-        if (e && listbox.contains(e.target)) return;
+        // Bound to both scroll and resize. A resize event's target is `window`,
+        // which is not a Node, and Node.contains() throws on a non-Node rather
+        // than returning false — so the guard has to be an instanceof check,
+        // not just a truthiness test. Resize falls through to close(), which is
+        // right anyway: the listbox is absolutely positioned and its placement
+        // is stale the moment the window changes size.
+        if (e && e.target instanceof Node && listbox.contains(e.target)) return;
         close();
     }
 
@@ -182,6 +188,19 @@ function updatePreview() {
         labelText.textContent = 'Download Gallery';
         emoji.style.display = 'inline';
     }
+}
+
+// ---- License / Pro status --------------------------------------------------
+// Rendering lives in license-ui.js (loaded ahead of us by popup.html) so this
+// surface and the options page can't drift apart. See CONTRACT.md §6.
+
+function loadLicenseStatus() {
+    loadLicenseBanner({
+        banner: document.getElementById('licenseBanner'),
+        titleEl: document.getElementById('licenseTitle'),
+        subEl: document.getElementById('licenseSub'),
+        actionsEl: document.getElementById('licenseActions'),
+    }, { activate: 'Activate' }, 'Popup');
 }
 
 function saveOptions() {
@@ -276,6 +295,7 @@ document.getElementById('customButtonLabel').addEventListener('input', updatePre
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('select').forEach(enhanceSelect);
     restoreOptions();
+    loadLicenseStatus();
 
     // Show the real manifest version in the header sub-line (matches the
     // Options-page footer; never a hardcoded string that can drift).

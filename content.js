@@ -49,15 +49,29 @@ function getLoadingText() {
     return "Downloading...";
 }
 
-function getSuccessText(themeName, count, total) {
+function getSuccessText(themeName, count, total, trialRemaining) {
     const trailing = (total && total !== count) ? `${count}/${total}` : `${count}`;
-    if (MINIMAL_LABEL_THEMES.has(themeName)) return `${trailing} Saved`;
-    return `✅ ${trailing} Files Saved!`;
+    const base = MINIMAL_LABEL_THEMES.has(themeName) ? `${trailing} Saved` : `✅ ${trailing} Files Saved!`;
+    // Licensed users get null here and see nothing. Trial users get a running
+    // count so running out is never a surprise — the last thing we want is a
+    // paywall appearing with no warning on someone mid-task.
+    if (typeof trialRemaining !== 'number') return base;
+    return `${base} · ${trialRemaining} free left`;
 }
 
 function getFailText(themeName) {
     if (MINIMAL_LABEL_THEMES.has(themeName)) return "No Images";
     return "❌ No Images";
+}
+
+// Shown when background.js's access gate blocks the download — i.e. the free
+// trial is spent and there's no licence (response.reason === "license_required",
+// see attachClickHandler below). Distinct from getFailText on purpose: "No
+// Images" reads as "this gallery has nothing to grab", which isn't true here —
+// the gallery is fine, the licence isn't. Lock icon keeps it obvious at a glance.
+function getPaywallText(themeName) {
+    if (MINIMAL_LABEL_THEMES.has(themeName)) return "🔒 Unlock Pro";
+    return "🔒 Unlock RedditDL Pro";
 }
 
 // Milestone celebration UI. Mounted on demand by attachClickHandler when
@@ -124,23 +138,23 @@ function showMilestoneOverlay(milestone, totalFiles) {
             <div style="font-size:38px;line-height:1;margin-bottom:10px;">🎉</div>
             <h2 style="font-family:'Fredoka','Quicksand',sans-serif;font-size:22px;font-weight:600;
                        margin:0 0 6px;letter-spacing:-0.01em;color:#1f2330;">
-                ${niceMile} downloads — thank you!
+                ${niceMile} files downloaded — thank you!
             </h2>
             <p style="margin:0 0 14px;color:#5b6273;font-size:14px;">
                 That's roughly <strong style="color:#1f2330;">${timeSaved}</strong> of right-clicking,
                 renaming and dragging you didn't have to do.
             </p>
             <p style="margin:0 0 18px;color:#5b6273;font-size:13px;line-height:1.55;">
-                Folks used to pay <strong style="color:#1f2330;">$3 a month</strong> for inferior tools
-                that did less than this one does for free. If it's been worth a fraction of that,
-                a small tip goes a long way — proceeds go to
-                <strong style="color:#1f2330;">children fighting cancer</strong>.
+                Thanks for using RedditDL Pro. Licence proceeds are donated on to
+                <strong style="color:#1f2330;">CanKids…KidsCan</strong>, India's childhood-cancer
+                charity, less what the payment processor takes — so if you want to add a little on
+                top, it goes to the same place.
             </p>
             <a data-role="cta" href="https://ko-fi.com/gauravzn" target="_blank" rel="noopener" style="
                 display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#ff5e5b;
                 color:#fff;padding:11px 24px;border-radius:999px;font-weight:600;font-size:14px;
                 text-decoration:none;box-shadow:0 4px 14px rgba(255,94,91,0.32);">
-                ☕ Tip on Ko-fi
+                ☕ Add a tip on Ko-fi
             </a>
             <button type="button" data-role="dismiss" style="
                 display:block;margin:12px auto 0;background:none;border:none;color:#a1a6b3;
@@ -226,8 +240,62 @@ let lastClickedPost = null;
 // caller and leaves the floating button never mounted. Falling through with
 // empty data lets the rest of the script keep working with default
 // appearance and no saved formulas, which is a strictly better failure mode.
+// True while this content script still belongs to a live extension. Goes false
+// permanently once the extension is reloaded, updated or disabled underneath us
+// — see handleContextLoss.
+let contextLost = false;
+
+// An orphaned content script keeps running with dead chrome.* handles.
+// chrome.runtime.id is the cheapest reliable probe: reading it on an
+// invalidated context returns undefined (or throws), while every other API
+// throws only when you actually call it.
+function isExtensionContextAlive() {
+    if (contextLost) return false;
+    try {
+        return Boolean(chrome && chrome.runtime && chrome.runtime.id);
+    } catch (_) {
+        return false;
+    }
+}
+
+function isContextInvalidatedError(err) {
+    return Boolean(err && /Extension context invalidated|Receiving end does not exist/i.test(err.message || String(err)));
+}
+
+// Developer    : Gaurav Jain
+// Created Date : 17-Sep-2026
+// Purpose      : Shut down cleanly when the extension is reloaded or updated
+//                under an open Reddit tab.
+// Without this the MutationObserver keeps firing against dead APIs — hundreds
+// of identical console warnings — and the Download button stays mounted but
+// silently does nothing. Users hit this on every auto-update, not just in dev.
+function handleContextLoss() {
+    if (contextLost) return;
+    contextLost = true;
+
+    try { bodyObserver.disconnect(); } catch (_) { /* already gone */ }
+
+    const btn = document.getElementById('reddit-custom-dl-btn');
+    if (btn) {
+        // busy stays set so applyButtonAppearance can't paint over the notice;
+        // nothing will clear it, which is correct — this tab is done.
+        btn.dataset.busy = 'true';
+        btn.innerHTML = '<span>↻</span><span>Reload page to continue</span>';
+        btn.title = 'The extension was updated. Reload this tab to keep downloading.';
+    }
+    // Not a warn: this happens to every open Reddit tab on every extension
+    // update. It is normal MV3 lifecycle, the button already tells the user to
+    // reload, and there is nothing here for a developer to fix.
+    console.log('[RedditDL] Extension context invalidated (extension reloaded or updated) — reload this tab to continue.');
+}
+
 function safeStorageGet(keys, callback) {
-    if (!chrome || !chrome.storage || !chrome.storage.sync) {
+    if (!isExtensionContextAlive()) {
+        handleContextLoss();
+        callback({});
+        return;
+    }
+    if (!chrome.storage || !chrome.storage.sync) {
         console.warn('[RedditDL] chrome.storage.sync unavailable; falling back to defaults.');
         callback({});
         return;
@@ -242,7 +310,13 @@ function safeStorageGet(keys, callback) {
             callback(data || {});
         });
     } catch (e) {
-        console.warn('[RedditDL] chrome.storage.sync.get threw:', e);
+        // The common case here is an invalidated context, which is terminal for
+        // this tab — degrade once and stop, rather than warning on every frame.
+        if (isContextInvalidatedError(e)) {
+            handleContextLoss();
+        } else {
+            console.warn('[RedditDL] chrome.storage.sync.get threw:', e);
+        }
         callback({});
     }
 }
@@ -552,48 +626,115 @@ function attachClickHandler(btn) {
         });
 
         const executeDownload = (finalTitle) => {
+            // An orphaned tab can't reach the background at all. Say so before
+            // the button ever reads "Downloading…", instead of starting a cycle
+            // that can never finish.
+            if (!isExtensionContextAlive()) {
+                handleContextLoss();
+                return;
+            }
+
             // Mark the button busy so applyButtonAppearance won't overwrite the
             // loading/done message if the user saves popup settings mid-fetch.
             btn.dataset.busy = 'true';
             btn.innerHTML = getLoadingText();
 
-            console.log('[RedditDL] sending fetchAndDownload to background', { url: currentUrl, finalTitle });
-            const sendStart = Date.now();
-            chrome.runtime.sendMessage({
-                action: "fetchAndDownload",
-                url: currentUrl,
-                title: finalTitle
-            }, (response) => {
-                const elapsed = Date.now() - sendStart;
-                // chrome.runtime.lastError fires here when the background
-                // service worker died before responding, the message channel
-                // closed, etc. — a separate failure mode from "we ran but
-                // found 0 images". Keep them distinguishable in the console.
-                if (chrome.runtime.lastError) {
-                    console.error('[RedditDL] sendMessage failed after', elapsed, 'ms:', chrome.runtime.lastError.message);
-                }
-                const themeNow = btn.getAttribute('data-theme') || 'theme-native';
-                if (response && response.success) {
-                    console.log('[RedditDL] download cycle ok', { elapsedMs: elapsed, count: response.count, total: response.total });
-                    btn.innerHTML = getSuccessText(themeNow, response.count, response.total);
-                    // Celebrate round-number milestones (100, 1k, 5k, 10k)
-                    // right on the Reddit page so the user sees it the moment
-                    // it happens, not the next time they open Options. The
-                    // overlay is self-contained (own DOM + styles below).
-                    if (response.milestone) {
-                        showMilestoneOverlay(response.milestone, response.totalFiles || response.milestone);
-                    }
-                } else {
-                    console.warn('[RedditDL] download cycle reported NO IMAGES / failure', { elapsedMs: elapsed, response });
-                    btn.innerHTML = getFailText(themeNow);
-                }
+            // Restores the button from any terminal state. Guarded so the
+            // watchdog and the real reply can't both run it.
+            let settled = false;
+            const resetSoon = () => {
                 setTimeout(() => {
                     delete btn.dataset.busy;
-                    // Pull the freshest label/theme in case the user changed them while we were fetching.
+                    // Freshest label/theme, in case the user changed them mid-fetch.
                     if (cachedSettings) applyButtonAppearance(btn, cachedSettings);
                     else btn.innerHTML = getButtonContent('');
                 }, 3000);
-            });
+            };
+
+            // Last-resort backstop. Every known failure path already calls back
+            // — this only catches the unknown ones, so it is deliberately far
+            // longer than a legitimate large ZIP build takes. Without it, any
+            // missed callback leaves "Downloading…" on screen forever.
+            const watchdog = setTimeout(() => {
+                if (settled) return;
+                settled = true;
+                console.error('[RedditDL] no reply from background after 4 minutes — resetting the button.');
+                btn.innerHTML = getFailText(btn.getAttribute('data-theme') || 'theme-native');
+                resetSoon();
+            }, 4 * 60 * 1000);
+
+            console.log('[RedditDL] sending fetchAndDownload to background', { url: currentUrl, finalTitle });
+            const sendStart = Date.now();
+
+            // sendMessage THROWS synchronously on an invalidated context rather
+            // than reporting via lastError, so an unguarded call skips the
+            // whole callback below — which is exactly how the button used to
+            // hang on "Downloading…" forever after an extension update.
+            try {
+                chrome.runtime.sendMessage({
+                    action: "fetchAndDownload",
+                    url: currentUrl,
+                    title: finalTitle
+                }, (response) => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(watchdog);
+                    const elapsed = Date.now() - sendStart;
+                    // lastError fires when the background service worker died
+                    // before responding, the channel closed, etc. — a separate
+                    // failure mode from "we ran but found 0 images".
+                    if (chrome.runtime.lastError) {
+                        console.error('[RedditDL] sendMessage failed after', elapsed, 'ms:', chrome.runtime.lastError.message);
+                    }
+                    const themeNow = btn.getAttribute('data-theme') || 'theme-native';
+                    if (response && response.success) {
+                        console.log('[RedditDL] download cycle ok', { elapsedMs: elapsed, count: response.count, total: response.total });
+                        btn.innerHTML = getSuccessText(themeNow, response.count, response.total, response.trialRemaining);
+                        // Celebrate round-number milestones right where the user
+                        // clicked, not the next time they open Options.
+                        if (response.milestone) {
+                            showMilestoneOverlay(response.milestone, response.totalFiles || response.milestone);
+                        }
+                    } else if (response && response.reason === "license_required") {
+                        // The access gate blocked this before it ever touched
+                        // Reddit's API — free trial spent and no licence. Not a
+                        // "No Images" failure, so it gets its own button state
+                        // and we open the paywall rather than leaving the user
+                        // to guess. Content scripts can't call chrome.tabs, so
+                        // background.js opens the tab for us.
+                        // console.log, not warn: chrome://extensions collects
+                        // warn and error into its Errors panel, and a blocked
+                        // download is the paywall working as designed — not a
+                        // fault for the user or a reviewer to worry about.
+                        // Values are inlined because that panel flattens
+                        // objects to "[object Object]".
+                        console.log(`[RedditDL] download blocked after ${elapsed}ms — free trial spent and no licence. Opening the paywall.`);
+                        btn.innerHTML = getPaywallText(themeNow);
+                        try {
+                            chrome.runtime.sendMessage({ action: "openPaywall" });
+                        } catch (err) {
+                            if (isContextInvalidatedError(err)) handleContextLoss();
+                        }
+                    } else {
+                        // console.log, not warn: "this post had no images" is a
+                        // normal answer, and warn/error land in the extension's
+                        // Errors panel where they read as breakage.
+                        console.log(`[RedditDL] no files saved after ${elapsed}ms — reason: ${(response && response.reason) || 'unknown'}, count: ${(response && response.count) || 0}`);
+                        btn.innerHTML = getFailText(themeNow);
+                    }
+                    resetSoon();
+                });
+            } catch (err) {
+                settled = true;
+                clearTimeout(watchdog);
+                if (isContextInvalidatedError(err)) {
+                    handleContextLoss();
+                    return; // handleContextLoss owns the button from here
+                }
+                console.error('[RedditDL] sendMessage threw:', err);
+                btn.innerHTML = getFailText(btn.getAttribute('data-theme') || 'theme-native');
+                resetSoon();
+            }
         };
 
         // Same defensive path as loadSettings — chrome.storage.sync can be
@@ -655,6 +796,10 @@ function attachClickHandler(btn) {
 // We used to poll every 500ms. MutationObserver does the same job for nearly free.
 let observerScheduled = false;
 const scheduleCheck = () => {
+    // The observer is disconnected on context loss, but the History hooks and
+    // popstate/hashchange listeners still fire — without this they keep
+    // re-entering manageFloatingButton against dead APIs on every SPA nav.
+    if (contextLost) return;
     if (observerScheduled) return;
     observerScheduled = true;
     requestAnimationFrame(() => {

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Transparency &amp; Live Donation Total · Reddit Picture Gallery Downloader</title>
+    <link rel="icon" type="image/png" sizes="48x48" href="icon48.png">
+    <link rel="shortcut icon" type="image/png" href="icon128.png">
+    <link rel="stylesheet" href="fonts.css">
+    <style>
+        :root {
+            /* Light mode: same warm cream + ink palette as tips.html, so the
+               two standalone reading pages feel like one voice. One accent
+               (camel beige) used sparingly. */
+            --bg-main: #fbfaf7;
+            --bg-soft: #f1ede4;
+            --text-primary: #1f2330;
+            --text-secondary: #5b6273;
+            --text-tertiary: #a1a6b3;
+            --border-color: #e6e0d4;
+            --hairline: rgba(31, 35, 48, 0.08);
+
+            --accent: #b18a5e;
+            --accent-soft: rgba(177, 138, 94, 0.12);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                /* Dark mode: soft warm-tinted dark-grey rather than near-black,
+                   matching tips.html. */
+                --bg-main: #22222a;
+                --bg-soft: #2d2d36;
+                --text-primary: #f5f4f0;
+                --text-secondary: #c0bdb6;
+                --text-tertiary: #8b8881;
+                --border-color: #3a3a44;
+                --hairline: rgba(255, 255, 255, 0.08);
+
+                --accent: #dbb481;
+                --accent-soft: rgba(219, 180, 129, 0.14);
+            }
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body { margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
+            min-height: 100vh;
+            color: var(--text-primary);
+            background-color: var(--bg-main);
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.55;
+            padding: 64px 6% 96px 6%;
+        }
+
+        /* Single-column reading layout, same max-width as tips.html so the
+           two pages line up if someone clicks between them. */
+        .page-wrapper {
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            margin-bottom: 48px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 32px;
+            transition: color 0.2s, gap 0.2s;
+        }
+        .back-link svg {
+            width: 14px;
+            height: 14px;
+            transition: transform 0.2s;
+        }
+        .back-link:hover {
+            color: var(--text-primary);
+            gap: 10px;
+        }
+        .back-link:hover svg {
+            transform: translateX(-2px);
+        }
+
+        .hero-overline {
+            display: inline-block;
+            font-family: 'Caveat', 'Fredoka', cursive;
+            font-size: 30px;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 0 0 4px 0;
+            line-height: 1;
+            transform: rotate(-1.5deg);
+        }
+        h1 {
+            margin: 0 0 16px 0;
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: clamp(32px, 4.6vw, 46px);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.05;
+            color: var(--text-primary);
+        }
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin: 0;
+            line-height: 1.65;
+        }
+
+        .intro {
+            margin-bottom: 48px;
+        }
+        .intro p {
+            font-size: 15.5px;
+            color: var(--text-secondary);
+            line-height: 1.75;
+            margin: 0 0 16px 0;
+        }
+        .intro p:last-child { margin-bottom: 0; }
+        .intro strong { color: var(--text-primary); }
+        .intro a {
+            color: var(--accent);
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 1.5px solid var(--accent);
+            padding-bottom: 1px;
+            transition: opacity 0.2s;
+        }
+        .intro a:hover { opacity: 0.7; }
+
+        section.stats-section h2 {
+            margin: 0 0 6px 0;
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+        }
+        .stats-lead {
+            margin: 0 0 20px 0;
+            font-size: 14.5px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        /* Live counter card — replaces the old hand-maintained ledger table.
+           Same card chrome (hairline border, soft background, 12px radius)
+           the table used to have, so the page's visual language doesn't
+           change even though the content underneath it did. */
+        .stats-card {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background: var(--bg-soft);
+            padding: 30px 28px;
+            text-align: center;
+        }
+        .stats-figure {
+            margin: 0;
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: clamp(19px, 3.4vw, 25px);
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+        .stats-figure .stats-amount {
+            color: var(--accent);
+        }
+        .stats-caption {
+            margin: 10px 0 0 0;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            line-height: 1.6;
+        }
+
+        /* The Ko-fi receipts link renders inside .stats-figure, so it inherits
+           the big-number treatment rather than looking like body copy. */
+        .stats-figure a.stats-amount {
+            text-decoration: none;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 2px;
+            transition: opacity 0.2s;
+        }
+        .stats-figure a.stats-amount:hover { opacity: 0.7; }
+
+        .stats-note {
+            margin: 14px 0 0 0;
+            font-size: 13.5px;
+            color: var(--text-tertiary);
+            line-height: 1.65;
+        }
+
+        .page-footer {
+            margin-top: 56px;
+            padding-top: 32px;
+            border-top: 1px solid var(--hairline);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .page-footer a {
+            color: var(--accent);
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 1.5px solid var(--accent);
+            padding-bottom: 1px;
+            transition: opacity 0.2s;
+        }
+        .page-footer a:hover {
+            opacity: 0.7;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 36px 6% 64px 6%; }
+            .page-header { margin-bottom: 36px; }
+            .intro { margin-bottom: 36px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-wrapper">
+
+        <header class="page-header">
+            <a href="welcome.html" class="back-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                    <polyline points="12 19 5 12 12 5"></polyline>
+                </svg>
+                Back to welcome
+            </a>
+            <span class="hero-overline">receipts, not just promises...</span>
+            <h1>Transparency &amp; live donation total</h1>
+            <p class="page-subtitle">Where the Pro license money actually goes, and the paper trail that proves it.</p>
+        </header>
+
+        <section class="intro">
+            <p>Every Pro license payment for Reddit Picture Gallery Downloader is donated to <strong><a href="https://cankidsindia.org/donate/" target="_blank" rel="noopener">CanKids...KidsCan</a></strong>, India's national society for childhood cancer care. You pay the developer on Ko-fi; the developer donates it onward monthly and posts the receipt publicly on <a href="https://ko-fi.com/gauravzn" target="_blank" rel="noopener">the same Ko-fi page</a>.</p>
+            <p>The honest version of "100%", because you should be able to check it rather than take it on faith: Ko-fi's payment processor takes its cut before the money ever reaches the developer's account. <strong>Every cent that does arrive is donated on — none of it is kept.</strong> Card processing carries a small percentage plus a flat per-transaction fee, so the flat part bites hardest on the $1 tier and barely registers on $10 — which is why the monthly receipts, not any worked example, are the number to hold this project to.</p>
+        </section>
+
+        <section class="stats-section">
+            <h2>The live running total</h2>
+            <p class="stats-lead">Fetched live from the licence server. It counts the payments the webhooks minted a licence for. Payments that needed sorting out by hand — a currency other than USD, a missing email, a licence granted manually — are not in it, so treat it as a floor rather than an exact figure.</p>
+
+            <div class="stats-card" id="statsCard" aria-live="polite">
+                <p class="stats-figure" id="statsFigure">Loading the live total&hellip;</p>
+                <p class="stats-caption" id="statsCaption"></p>
+            </div>
+
+            <p class="stats-note">This figure is what came <strong>in</strong> from supporters. What goes <strong>out</strong> to CanKids is posted as a receipt on the <a href="https://ko-fi.com/gauravzn" target="_blank" rel="noopener">Ko-fi page</a>, updated monthly — that is the number to hold this project to.</p>
+        </section>
+
+        <section class="stats-section" style="margin-top: 48px;">
+            <h2>Where the receipts are</h2>
+            <p class="stats-lead">Once a month the money collected above is donated on to CanKids...KidsCan, and the receipt is posted publicly as an update on the Ko-fi page. Nothing is kept back. If a month's post is missing, the donation hasn't been made yet — chase it.</p>
+
+            <div class="stats-card">
+                <p class="stats-figure"><a class="stats-amount" href="https://ko-fi.com/gauravzn" target="_blank" rel="noopener">See the monthly receipts on Ko-fi &rarr;</a></p>
+                <p class="stats-caption">Posted as public updates, so you don't have to take any of this on faith.</p>
+            </div>
+
+            <p class="stats-note">Donating to CanKids yourself instead is always an option, and a perfectly good one: <a href="https://cankidsindia.org/donate/" target="_blank" rel="noopener">cankidsindia.org/donate</a>. The extension's licence just happens to be a way of doing it that also gets you the downloader.</p>
+        </section>
+
+        <footer class="page-footer">
+            Questions about this page? Open an issue on <a href="https://github.com/GauravZn/reddit-downloader" target="_blank" rel="noopener">GitHub</a>.
+        </footer>
+
+    </div>
+
+    <script src="transparency.js"></script>
+
+</body>
+</html>

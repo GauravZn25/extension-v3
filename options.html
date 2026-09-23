@@ -105,6 +105,21 @@
                 </div>
             </div>
 
+            <!-- License / Pro status. Populated by options.js from the
+                 getLicenseStatus message (CONTRACT.md §6); stays hidden
+                 until that reply lands so the page never flashes the wrong
+                 state before background.js's cached answer comes back. -->
+            <div class="license-banner" id="license-banner" hidden>
+                <div class="license-info">
+                    <span class="license-dot"></span>
+                    <div class="license-text">
+                        <p class="license-title" id="license-title"></p>
+                        <p class="license-sub" id="license-sub"></p>
+                    </div>
+                </div>
+                <div class="license-actions" id="license-actions"></div>
+            </div>
+
             <!-- Download Behavior Settings -->
             <div class="behavior-settings section">
                 <div class="toggle-group">
@@ -328,6 +343,7 @@
         </div>
     </div>
 
+    <script src="license-ui.js"></script>
     <script src="options.js"></script>
 </body>
 </html>

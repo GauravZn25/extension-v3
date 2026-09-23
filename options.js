@@ -118,8 +118,12 @@ function enhanceSelect(nativeSelect) {
     }
 
     function closeOnScroll(e) {
-        // Don't close on scroll inside the listbox itself.
-        if (e && listbox.contains(e.target)) return;
+        // Don't close on scroll inside the listbox itself. Bound to resize too,
+        // whose target is `window` — not a Node, and Node.contains() throws on
+        // a non-Node rather than returning false, so this needs an instanceof
+        // guard. Resize then falls through to close(), which is correct: the
+        // listbox is absolutely positioned and its placement is stale.
+        if (e && e.target instanceof Node && listbox.contains(e.target)) return;
         close();
     }
 
@@ -1296,4 +1300,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (vEl) vEl.textContent = `v${mv.version}`;
         }
     } catch (_) { /* no-op — keep hardcoded fallback */ }
+
+    // -----------------------------------------------------------------
+    // License / Pro status
+    //
+    // Rendering lives in license-ui.js (loaded ahead of us by options.html) so
+    // this surface and the popup can't drift apart. See CONTRACT.md §6.
+    // -----------------------------------------------------------------
+
+    loadLicenseBanner({
+        banner: document.getElementById('license-banner'),
+        titleEl: document.getElementById('license-title'),
+        subEl: document.getElementById('license-sub'),
+        actionsEl: document.getElementById('license-actions'),
+    }, { activate: 'Activate license' }, 'Options');
 });

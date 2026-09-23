@@ -1,0 +1,38 @@
+# Cloudflare Worker config for the RedditDL Pro license server.
+# See CONTRACT.md (repo root) for the spec, SETUP.md for the deploy runbook.
+
+name = "redditdl-license"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+# Holds every record type: lic:, email:, txn:, rl:, stats:pipeline.
+# Create with `wrangler kv namespace create redditdl-license-kv`, then paste the
+# printed id below. The Worker will not deploy against the placeholder.
+# `binding` is load-bearing — worker.js references env.LICENSES directly.
+[[kv_namespaces]]
+binding = "LICENSES"
+id = "5f9eaf29a1f644c1a96a4f8a4ca43930"
+
+# Without this, console output exists only during a live `wrangler tail`, and
+# every deploy resets Worker settings to whatever this file says. The orphan
+# and mint-failure logs are the only trace of a payment that took money and
+# produced nothing — they have to survive.
+[observability]
+enabled = true
+
+[vars]
+# "sandbox" points PayPal verification at their test API. Set to "live" for real
+# payments. Ignored entirely if you skip the PayPal rail.
+PAYPAL_ENV = "live"
+
+# Secrets are NOT set here — this file is committed. Use `wrangler secret put`:
+#   ADMIN_SECRET              (required — guards /admin/*)
+#   KOFI_VERIFICATION_TOKEN   (required for the Ko-fi rail)
+#   PAYPAL_CLIENT_ID          (optional — only for the PayPal rail)
+#   PAYPAL_SECRET             (optional)
+#   PAYPAL_WEBHOOK_ID         (optional)
+
+# Once on a custom domain instead of *.workers.dev:
+# routes = [
+#   { pattern = "license.example.com/*", custom_domain = true }
+# ]

@@ -6,11 +6,12 @@
     },
     "manifest_version": 3,
     "name": "Reddit Picture Gallery Downloader",
-    "version": "3.0",
-    "description": "One-click high-res download for Reddit galleries.",
+    "version": "3.1.0",
+    "description": "High-res Reddit gallery downloads. 100 free, then $1/mo, $5/yr or $10 once — proceeds donated to CanKids cancer care.",
     "host_permissions": [
         "*://*.reddit.com/*",
-        "*://*.redd.it/*"
+        "*://*.redd.it/*",
+        "https://redditdl-license.reddit-downloader.workers.dev/*"
     ],
     "background": {
         "service_worker": "background.js"
@@ -27,7 +28,13 @@
         }
     ],
     "action": {
-        "default_popup": "popup.html"
+        "default_popup": "popup.html",
+        "default_title": "Reddit Picture Gallery Downloader",
+        "default_icon": {
+            "16": "icon16.png",
+            "48": "icon48.png",
+            "128": "icon128.png"
+        }
     },
     "options_ui": {
         "page": "options.html",
@@ -35,6 +42,7 @@
     },
     "permissions": [
         "downloads",
-        "storage"
+        "storage",
+        "alarms"
     ]
 }

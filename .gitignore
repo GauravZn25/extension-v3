@@ -1,0 +1,23 @@
+# Build output
+dist/
+*.zip
+
+# Cloudflare / Wrangler. The unanchored .wrangler/ matters: wrangler writes a
+# state dir wherever it is invoked from, and it carries the account id and
+# email. A root-only or subdir-only rule leaves the other one committable.
+.wrangler/
+license-server/.wrangler/
+.dev.vars
+license-server/.dev.vars
+
+# Secrets and anything holding supporter PII — never commit.
+# *.local.* is the convention: grandfather.local.ps1 carries real supporter
+# email addresses, which must not reach git or the extension package.
+.env
+.env.*
+*.local.ps1
+*.local.json
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

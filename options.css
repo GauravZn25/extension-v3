@@ -151,6 +151,85 @@ h2 {
 
 .save-wrapper { display: flex; align-items: center; gap: 14px; }
 
+/* License / Pro status banner — sits between the header row and the
+   behavior toggles. Same card language as .mode-description (bg-elev
+   surface, ink text) so it reads as page chrome, not a bolted-on ad.
+   Populated by options.js from the getLicenseStatus message; stays hidden
+   until that reply lands so the page never flashes the wrong state on load. */
+/* display:flex below beats the `hidden` attribute's UA display:none, so an
+   unpopulated banner would show as an empty grey card on every page load.
+   This restores hidden's meaning. */
+[hidden] { display: none !important; }
+
+.license-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 20px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    margin-bottom: 24px;
+}
+.license-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+/* Dot stays muted (text-tertiary) until a license is actually valid —
+   the page's palette is monochrome ink, so "active" is communicated by
+   filling the dot in rather than introducing a green/red status color. */
+.license-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    flex-shrink: 0;
+}
+.license-banner.is-active .license-dot,
+.license-banner.is-lifetime .license-dot {
+    background: var(--text-primary);
+}
+.license-text { min-width: 0; }
+.license-title {
+    margin: 0;
+    font-family: 'Fredoka', 'Quicksand', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.license-sub {
+    margin: 2px 0 0 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.license-actions { flex-shrink: 0; }
+.license-action-btn,
+.license-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.15s;
+}
+.license-action-btn:hover,
+.license-action-link:hover {
+    border-color: var(--text-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
 .mock-post-card {
     width: 100%; max-width: 360px;
     background-color: #ffffff;

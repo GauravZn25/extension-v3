@@ -33,6 +33,11 @@
             --success-bg: rgba(16, 185, 129, 0.04);
             --success-border: rgba(16, 185, 129, 0.2);
             --success-text: #065F46;
+
+            /* License activation failure state (paywall section) */
+            --error-bg: rgba(239, 68, 68, 0.04);
+            --error-border: rgba(239, 68, 68, 0.2);
+            --error-text: #B91C1C;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -60,10 +65,19 @@
                 --success-bg: rgba(16, 185, 129, 0.05);
                 --success-border: rgba(52, 211, 153, 0.2);
                 --success-text: #34D399;
+
+                --error-bg: rgba(239, 68, 68, 0.06);
+                --error-border: rgba(248, 113, 113, 0.25);
+                --error-text: #F87171;
             }
         }
 
         * { box-sizing: border-box; }
+
+        /* Smooth-scrolls to #paywall when content.js opens
+           welcome.html#paywall in a new tab (see CONTRACT.md §6,
+           fetchAndDownload's license_required reason). */
+        html { scroll-behavior: smooth; }
 
         body {
             font-family: 'Quicksand', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, sans-serif;
@@ -71,7 +85,13 @@
             padding: 0;
             height: 100vh;
             width: 100%;
-            overflow: hidden;
+            /* Was `overflow: hidden` — the hero+features layout alone always
+               fit one viewport, but the paywall section below it doesn't, so
+               vertical scrolling has to stay on (this is the same technique
+               the max-width:960px block below already uses for small
+               screens, just applied unconditionally now). */
+            overflow-y: auto;
+            overflow-x: hidden;
             color: var(--text-primary);
             background-color: var(--bg-main);
             -webkit-font-smoothing: antialiased;
@@ -173,12 +193,149 @@
             transform: translateX(2px);
         }
 
+        /* ============================================================
+           PAYWALL / LICENSE ACTIVATION (#paywall)
+           Lives below the hero+features viewport — reachable by
+           scrolling or by jumping straight to the welcome.html#paywall
+           anchor (content.js does this when a download is blocked on
+           an inactive license). Reuses the same card chrome as
+           .feature-item so it doesn't look like a bolted-on afterthought.
+           ============================================================ */
+        .paywall-section {
+            border-top: 1px solid var(--border-color);
+            padding: 6% 8% 10%;
+        }
+
+        .paywall-inner { max-width: 900px; margin: 0 auto; }
+
+        .paywall-inner h2 {
+            margin: 0 0 8px 0;
+            font-family: 'Fredoka', 'Quicksand', sans-serif;
+            font-size: clamp(24px, 2.6vw, 32px);
+            font-weight: 700;
+        }
+
+        .paywall-subtitle { color: var(--text-secondary); font-size: 15px; max-width: 560px; margin: 0 0 28px 0; line-height: 1.5; }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .pricing-card {
+            background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 22px;
+            padding: 22px; display: flex; flex-direction: column; gap: 6px; transition: all 0.2s ease-in-out;
+        }
+        .pricing-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04); }
+
+        .pricing-card h3 { margin: 0; font-family: 'Fredoka', 'Quicksand', sans-serif; font-size: 15px; font-weight: 600; }
+        .pricing-card .price { font-size: 28px; font-weight: 700; }
+        .pricing-card .price span { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-left: 3px; }
+        .pricing-card p { margin: 0 0 10px 0; font-size: 13px; color: var(--text-secondary); line-height: 1.5; flex: 1; }
+
+        .pricing-card .primary-btn {
+            text-align: center; text-decoration: none; display: inline-block; padding: 12px 20px; font-size: 14px;
+        }
+
+        /* The charity promise, stated once and prominently above the cards. */
+        .charity-lead {
+            font-size: 14px; color: var(--text-secondary); line-height: 1.65; max-width: 640px; margin: 0 0 18px 0;
+        }
+        .charity-lead strong { color: var(--text-primary); }
+
+        /* Which amount to enter on Ko-fi — sits under the card's .price. */
+        .price-hint { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; }
+
+        /* Live /stats counter. Hidden by default; welcome.js only un-hides it
+           on a successful fetch, so a server outage shows nothing rather than
+           a broken or zeroed number. */
+        .stats-counter { font-size: 13px; color: var(--text-secondary); margin: 0 0 24px 0; }
+        .stats-counter strong { color: var(--text-primary); }
+
+        .charity-note {
+            font-size: 12.5px; color: var(--text-tertiary, var(--text-secondary)); line-height: 1.6; max-width: 640px; margin: 0 0 32px 0;
+        }
+        .charity-note a { color: var(--text-secondary); font-weight: 600; }
+
+        .activate-box {
+            border: 1px solid var(--border-color); border-radius: 22px; padding: 22px; max-width: 480px;
+        }
+        .activate-box h3 { margin: 0 0 14px 0; font-family: 'Fredoka', 'Quicksand', sans-serif; font-size: 16px; font-weight: 600; }
+
+        /* "Already paid?" box — reuses .activate-box chrome so it matches the
+           key-activation box, plus spacing and a form layout. */
+        .claim-box { margin-top: 20px; max-width: 480px; }
+        .claim-box .claim-hint { margin: 0 0 14px 0; font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+        /* "Waiting for your payment" panel — shown after a pay button is
+           clicked, while welcome.js polls for the licence to appear. */
+        .waiting-panel {
+            border: 1.5px solid var(--accent-primary); border-radius: 22px; padding: 24px;
+            max-width: 560px; margin: 0 0 24px 0;
+        }
+        .waiting-head { display: flex; align-items: center; gap: 11px; margin-bottom: 10px; }
+        .waiting-head h3 { margin: 0; font-family: 'Fredoka', 'Quicksand', sans-serif; font-size: 17px; font-weight: 600; }
+        .waiting-spinner {
+            width: 16px; height: 16px; flex-shrink: 0; border-radius: 50%;
+            border: 2.5px solid var(--border-color); border-top-color: var(--accent-primary);
+            animation: waiting-spin 0.8s linear infinite;
+        }
+        @keyframes waiting-spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .waiting-spinner { animation: none; } }
+        .waiting-copy { margin: 0 0 16px 0; font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+        .waiting-copy strong { color: var(--text-primary); }
+        .waiting-label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 2px; }
+        .waiting-foot { margin: 14px 0 0 0; }
+        .link-btn {
+            background: none; border: none; padding: 0; font: inherit; font-size: 13px;
+            color: var(--text-secondary); text-decoration: underline; cursor: pointer;
+        }
+        .link-btn:hover { color: var(--text-primary); }
+
+        /* Success state — replaces the paywall entirely. */
+        .unlocked-panel {
+            border: 1.5px solid var(--success-border); background: var(--success-bg);
+            border-radius: 22px; padding: 30px 26px; max-width: 560px; text-align: center;
+        }
+        .unlocked-mark { font-size: 40px; line-height: 1; margin-bottom: 10px; }
+        .unlocked-panel h3 { margin: 0 0 8px 0; font-family: 'Fredoka', 'Quicksand', sans-serif; font-size: 21px; font-weight: 700; color: var(--success-text); }
+        .unlocked-panel p { margin: 0 0 6px 0; font-size: 14.5px; color: var(--text-secondary); line-height: 1.6; }
+        .unlocked-thanks { font-size: 13px !important; color: var(--text-secondary); opacity: 0.85; margin-top: 12px !important; }
+
+        .claim-form { display: flex; flex-direction: column; gap: 10px; }
+        .claim-form input {
+            padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border-hover);
+            background: var(--bg-main); color: var(--text-primary); font-family: inherit; font-size: 14px;
+        }
+        .claim-form input:focus { outline: none; border-color: var(--accent-primary); }
+        .claim-form input:disabled,
+        .claim-form button:disabled { opacity: 0.6; }
+        .claim-form button { align-self: flex-start; padding: 12px 22px; font-size: 14px; }
+
+        .activate-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .activate-row input {
+            flex: 1; min-width: 180px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid var(--border-hover);
+            background: var(--bg-main); color: var(--text-primary); font-family: inherit; font-size: 14px;
+        }
+        .activate-row input:focus { outline: none; border-color: var(--accent-primary); }
+        .activate-row input:disabled { opacity: 0.6; }
+        .activate-row .secondary-btn { padding: 12px 22px; font-size: 14px; }
+
+        .license-status {
+            margin-top: 14px; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5;
+        }
+        .license-status.success { background: var(--success-bg); border: 1px solid var(--success-border); color: var(--success-text); }
+        .license-status.error { background: var(--error-bg); border: 1px solid var(--error-border); color: var(--error-text); }
+
         @media (max-width: 960px) {
             body { overflow-y: auto; }
             .layout-wrapper { flex-direction: column; height: auto; }
             .hero-section { border-bottom: 1px solid var(--border-color); padding: 10% 8%; }
             .features-section { padding: 10% 8%; }
             .primary-btn, .secondary-btn { width: 100%; text-align: center; }
+            .pricing-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -188,8 +345,8 @@
         <div class="hero-section">
             <img src="icon128.png" alt="Extension Icon" class="hero-icon">
             <h1>You're all set! 🎉</h1>
-            <p class="subtitle">Reddit Picture Gallery Downloader is installed and ready. Open any Reddit gallery and you'll see the Download button waiting in the corner.</p>
-            
+            <p class="subtitle">Reddit Picture Gallery Downloader is installed and ready — open any Reddit gallery and you'll see the Download button waiting in the corner. Your first <strong>100 downloads are free</strong>; after that a licence is $1 a month, $5 a year, or $10 once — and 100% of what reaches the developer, after the payment processor's fee, is donated on to childhood-cancer charity CanKids…KidsCan.</p>
+
             <div class="btn-group">
                 <button class="primary-btn" id="closeWelcomeBtn">Got it, close tab</button>
                 <button class="secondary-btn" id="customizeNamingBtnWelcome">⚙️ Customize Naming</button>
@@ -248,6 +405,116 @@
                 </svg>
             </a>
 
+        </div>
+    </div>
+
+    <!-- ================================================================
+         PAYWALL / LICENSE ACTIVATION
+         Reachable at welcome.html#paywall — content.js opens exactly that
+         URL in a new tab when a download is blocked because
+         fetchAndDownload replied { ok: false, reason: "license_required" }
+         (see CONTRACT.md §6).
+
+         v3 (CONTRACT.md §1): buyers pay the developer on Ko-fi (card or
+         PayPal), the Ko-fi webhook mints a license within seconds, and the
+         buyer activates by entering the email they paid with. No key to
+         copy-paste, no waiting on a human.
+         ================================================================ -->
+    <div class="paywall-section" id="paywall">
+        <div class="paywall-inner">
+            <h2>Go Pro</h2>
+            <p class="paywall-subtitle">Your first 100 gallery downloads are free — no licence, no account, nothing to enter. After that, unlock unlimited downloads with one payment on Ko-fi (card or PayPal, whichever you prefer).</p>
+
+            <p class="charity-lead"><strong>100% goes to CanKids…KidsCan</strong>, India's national childhood-cancer care charity. You pay the developer on Ko-fi; the developer keeps none of it and donates everything that arrives onward each month, posting the receipts publicly on Ko-fi — see the <a href="transparency.html" target="_blank" rel="noopener">transparency page</a>. Ko-fi's payment processor takes its own fee first — that part never reaches anyone here.</p>
+
+            <div class="pricing-grid" id="pricingGrid">
+                <div class="pricing-card">
+                    <h3>Monthly</h3>
+                    <div class="price">$1<span>/ month</span></div>
+                    <div class="price-hint">Enter $1 on Ko-fi</div>
+                    <p>30 days of unlimited downloads. Pay again to renew whenever you like.</p>
+                    <a class="primary-btn pay-btn" data-amount="1" href="https://ko-fi.com/gauravzn" target="_blank" rel="noopener">Pay $1 on Ko-fi</a>
+                </div>
+                <div class="pricing-card">
+                    <h3>Yearly</h3>
+                    <div class="price">$5<span>/ year</span></div>
+                    <div class="price-hint">Enter $5 on Ko-fi</div>
+                    <p>365 days of unlimited downloads. Best value if you use this regularly.</p>
+                    <a class="primary-btn pay-btn" data-amount="5" href="https://ko-fi.com/gauravzn" target="_blank" rel="noopener">Pay $5 on Ko-fi</a>
+                </div>
+                <div class="pricing-card">
+                    <h3>Lifetime</h3>
+                    <div class="price">$10<span>once</span></div>
+                    <div class="price-hint">Enter $10 on Ko-fi</div>
+                    <p>Pay once, own it forever. No renewals, ever.</p>
+                    <a class="primary-btn pay-btn" data-amount="10" href="https://ko-fi.com/gauravzn" target="_blank" rel="noopener">Pay $10 on Ko-fi</a>
+                </div>
+            </div>
+
+            <!-- Appears the moment a pay button is clicked. welcome.js then
+                 watches for the licence to land and unlocks on its own, so the
+                 buyer's only job is to come back to this tab. -->
+            <div class="waiting-panel" id="waitingPanel" hidden>
+                <div class="waiting-head">
+                    <span class="waiting-spinner" aria-hidden="true"></span>
+                    <h3 id="waitingTitle">Finish your payment on Ko-fi</h3>
+                </div>
+                <p class="waiting-copy" id="waitingCopy">Ko-fi opened in a new tab. Pay <strong id="waitingAmount">$1</strong> there, then come straight back here — this page unlocks by itself, usually within a few seconds.</p>
+
+                <form class="claim-form" id="watchForm">
+                    <label class="waiting-label" for="watchEmail">The email you're paying with</label>
+                    <input type="email" id="watchEmail" placeholder="you@example.com" autocomplete="email" required>
+                    <button type="submit" class="secondary-btn" id="watchBtn">Watch for my payment</button>
+                </form>
+
+                <div class="license-status" id="watchStatus" hidden></div>
+                <p class="waiting-foot"><button type="button" class="link-btn" id="cancelWatch">Cancel and go back</button></p>
+            </div>
+
+            <!-- Replaces the whole paywall on success. -->
+            <div class="unlocked-panel" id="unlockedPanel" hidden>
+                <div class="unlocked-mark">🎉</div>
+                <h3 id="unlockedTitle">You're unlocked</h3>
+                <p id="unlockedCopy">RedditDL Pro is active. Open any Reddit gallery and hit Download — no limits.</p>
+                <p class="unlocked-thanks">Thank you — every penny of this goes to CanKids…KidsCan.</p>
+            </div>
+
+            <!-- Filled in by welcome.js from /stats. Hidden until a successful
+                 fetch populates it, so a server hiccup shows nothing rather
+                 than a broken counter. -->
+            <p class="stats-counter" id="statsCounter" hidden></p>
+
+            <p class="charity-note">Use the same email on Ko-fi that you enter below — that is how your licence finds you. Prefer to skip all this and give directly? <a href="https://cankidsindia.org/donate/" target="_blank" rel="noopener">cankidsindia.org/donate</a> is a perfectly good option; the licence just happens to also get you the downloader.</p>
+
+            <!-- The normal path: pay, then type the email you paid with. The
+                 server matches it to the license its webhook already minted
+                 and activates it in place. -->
+            <div class="activate-box claim-box">
+                <h3>Already paid? Unlock it here</h3>
+                <p class="claim-hint">Enter the email address you used on Ko-fi. Your licence activates immediately — Ko-fi usually tells us within a few seconds, occasionally up to a minute.</p>
+                <form class="claim-form" id="retrieveForm">
+                    <input type="email" id="retrieveEmail" placeholder="The email you paid with" autocomplete="email" required>
+                    <button type="submit" class="secondary-btn" id="retrieveBtn">Unlock RedditDL Pro</button>
+                </form>
+                <div class="license-status" id="retrieveStatus" hidden></div>
+            </div>
+
+            <!-- Fallback for anyone who was sent a key by hand. A form, not a
+                 bare div, so Enter submits it like the box above. -->
+            <div class="activate-box claim-box">
+                <h3>Got a licence key instead?</h3>
+                <p class="claim-hint">If the developer emailed you a key directly, paste it here.</p>
+                <form class="activate-row" id="activateForm">
+                    <input type="text" id="licenseKeyInput" placeholder="Paste your licence key" autocomplete="off" spellcheck="false">
+                    <button type="submit" class="secondary-btn" id="activateLicenseBtn">Activate</button>
+                </form>
+                <div class="license-status" id="licenseStatus" hidden></div>
+            </div>
+
+            <!-- Deliberately email, not the issue tracker: the address someone
+                 paid with is what /retrieve accepts, so asking them to post it
+                 publicly would hand their licence to anyone reading. -->
+            <p class="charity-note">Paid but still stuck? Email <a href="mailto:gauravjain.tech@gmail.com">gauravjain.tech@gmail.com</a> with the address you paid with and it'll be sorted by hand. Don't post it publicly — that address is what unlocks your licence.</p>
         </div>
     </div>
 </body>

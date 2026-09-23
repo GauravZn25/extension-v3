@@ -108,6 +108,90 @@
             padding: 12px 18px 14px 18px;
         }
 
+        /* License / Pro status — same two-tone card language as the rest of
+           the popup (bg-elev surface, ink text, pill action) rather than a
+           bolted-on ad banner. Populated by popup.js from the
+           getLicenseStatus reply; stays hidden until that reply lands so we
+           never flash the wrong state on open. */
+        /* display:flex below beats the `hidden` attribute's UA display:none, so
+           an unpopulated banner would show as an empty grey card on every
+           popup open. This restores hidden's meaning. */
+        [hidden] { display: none !important; }
+
+        .license-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            background-color: var(--bg-elev);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+        }
+        .license-info {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 0;
+        }
+        /* Dot stays muted (text-tertiary) until a license is actually valid —
+           mirrors the same monochrome ink-only palette everything else here
+           uses, no green/red status colors invented. */
+        .license-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-tertiary);
+            flex-shrink: 0;
+        }
+        .license-banner.is-active .license-dot,
+        .license-banner.is-lifetime .license-dot {
+            background-color: var(--text-primary);
+        }
+        .license-text {
+            min-width: 0;
+        }
+        .license-title {
+            margin: 0;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .license-sub {
+            margin: 1px 0 0 0;
+            font-size: 10.5px;
+            color: var(--text-secondary);
+        }
+        .license-actions {
+            flex-shrink: 0;
+        }
+        .license-action-btn,
+        .license-action-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: inherit;
+            color: var(--text-primary);
+            background-color: var(--bg);
+            border: 1px solid var(--border-strong);
+            border-radius: 999px;
+            cursor: pointer;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: border-color 0.15s, background-color 0.15s;
+        }
+        .license-action-btn:hover,
+        .license-action-link:hover {
+            border-color: var(--text-secondary);
+            background-color: var(--bg-elev);
+        }
+
         .section {
             margin-bottom: 10px;
         }
@@ -540,6 +624,20 @@
 
     <div class="body-wrapper">
 
+        <!-- License / Pro status. Populated by popup.js from the
+             getLicenseStatus message (CONTRACT.md §6); stays hidden until
+             that reply lands so we never flash the wrong state on open. -->
+        <div class="license-banner" id="licenseBanner" hidden>
+            <div class="license-info">
+                <span class="license-dot" id="licenseDot"></span>
+                <div class="license-text">
+                    <p class="license-title" id="licenseTitle"></p>
+                    <p class="license-sub" id="licenseSub"></p>
+                </div>
+            </div>
+            <div class="license-actions" id="licenseActions"></div>
+        </div>
+
         <div class="section">
             <h2 class="section-title">Where they go 📁</h2>
             <div class="field">
@@ -635,6 +733,7 @@
         <div id="status"></div>
     </div>
     <script src="themes.js"></script>
+    <script src="license-ui.js"></script>
     <script src="popup.js"></script>
 </body>
 

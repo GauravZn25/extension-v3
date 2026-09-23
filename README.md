@@ -129,9 +129,23 @@ The shortcut is keyed off `event.code === 'KeyD'`, so non-Latin keyboard layouts
 |---|---|
 | `downloads` | Save images to your chosen folder via `chrome.downloads.download`. |
 | `storage` | Persist your settings (formulas, themes, format tweaks) across sessions and Chrome-sync them between devices. |
+| `alarms` | Re-check the Pro licence every 12 hours in the background. |
 | `host_permissions: *://*.reddit.com/*`, `*://*.redd.it/*` | Inject the floating button and fetch gallery JSON from Reddit. |
+| `host_permissions:` the licence server | Verify the Pro licence key. |
 
-No analytics, no telemetry, no third-party calls. Everything stays on your machine.
+No analytics and no telemetry. The only thing that ever leaves your device is
+your licence key — and the email address you paid with, if you use the
+unlock-by-email option. Nothing about the pages you browse or the images you
+download is transmitted anywhere. See [privacy.html](privacy.html).
+
+## Pro licence
+
+Your first **100 gallery downloads are free** — no licence, no account, nothing
+to enter. After that a licence is **$1/month, $5/year, or $10 lifetime**,
+paid on [Ko-fi](https://ko-fi.com/gauravzn) (card or PayPal). 100% of it is
+donated on to [CanKids…KidsCan](https://cankidsindia.org/donate/), India's
+childhood-cancer charity, less the payment processor's own fee — receipts are
+published on the extension's transparency page.
 
 ---
 
