@@ -780,6 +780,28 @@ async function handleAdminLookup(request, env) {
 }
 
 // Developer    : Gaurav Jain
+// Created Date : 23-Sep-2026
+// Purpose      : Correct the public donation counter.
+// The counter is shown publicly on the transparency page, so the owner needs a
+// way to undo test payments — and to fix it if a lost-update race ever skews
+// it. Body: { totalUSD, paymentCount } — omit either to leave it alone.
+async function handleAdminSetStats(request, env) {
+    if (!isAdminAuthorized(request, env)) return jsonResponse({ error: 'unauthorized' }, 401);
+
+    const body = await readJsonBody(request);
+    if (!body) return jsonResponse({ error: 'invalid_json' }, 400);
+
+    const existing = (await env.LICENSES.get('stats:pipeline', 'json')) || { totalUSD: 0, paymentCount: 0, lastUpdatedAt: null };
+    const updated = {
+        totalUSD: Number.isFinite(Number(body.totalUSD)) ? Number(body.totalUSD) : existing.totalUSD,
+        paymentCount: Number.isFinite(Number(body.paymentCount)) ? Number(body.paymentCount) : (existing.paymentCount ?? 0),
+        lastUpdatedAt: nowSeconds(),
+    };
+    await env.LICENSES.put('stats:pipeline', JSON.stringify(updated));
+    return jsonResponse({ ok: true, ...updated });
+}
+
+// Developer    : Gaurav Jain
 // Created Date : 18-Sep-2026
 // Purpose      : List payments that were charged but produced no licence.
 // This is the reconciliation route — the only way to discover that a wrong
@@ -847,6 +869,7 @@ export default {
             if (method === 'POST' && pathname === '/admin/revoke') return await handleAdminRevoke(request, env);
             if (method === 'POST' && pathname === '/admin/delete') return await handleAdminDelete(request, env);
             if (method === 'GET' && pathname === '/admin/lookup') return await handleAdminLookup(request, env);
+            if (method === 'POST' && pathname === '/admin/stats') return await handleAdminSetStats(request, env);
             if (method === 'GET' && pathname === '/admin/orphans') return await handleAdminOrphans(request, env);
             if (method === 'GET' && pathname === '/admin/licenses') return await handleAdminListLicenses(request, env);
 
