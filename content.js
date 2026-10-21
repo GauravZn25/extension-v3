@@ -200,6 +200,120 @@ function showMilestoneOverlay(milestone, totalFiles) {
     document.addEventListener('keydown', onKey, true);
 }
 
+// Custom-title dialog, standing in for window.prompt(). Chrome's native prompt
+// box trims leading/trailing whitespace from anything pasted into it
+// (TextfieldModel::Paste in Chromium), so pasting " by Some Photographer" onto
+// the end of the default title lost its space and saved "Some Subjectby Some
+// Photographer" (Joe's report). A page <input> pastes exactly what's on the
+// clipboard.
+//
+// <dialog>.showModal() puts it in the browser's top layer — above Reddit's
+// lightbox whatever its z-index — makes the page behind it inert the way the
+// native prompt did, and fires 'cancel' on Esc. Styles are inline !important
+// for the same reason as the milestone overlay: Reddit's global resets.
+// Resolves to the entered text, or null when cancelled — window.prompt's
+// contract, so callers treat it the same.
+let titlePromptOpen = false;
+function showTitlePrompt(message, defaultValue) {
+    if (typeof HTMLDialogElement === 'undefined' || typeof HTMLDialogElement.prototype.showModal !== 'function') {
+        return Promise.resolve(window.prompt(message, defaultValue));
+    }
+    return new Promise((resolve) => {
+        // Single-quoted family names: these strings land inside style="…"
+        // attributes, where a double quote would end the attribute early.
+        const font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+        const btn = `display:inline-block !important;pointer-events:auto !important;cursor:pointer !important;` +
+            `font:600 14px/1 ${font} !important;padding:10px 20px !important;border-radius:999px !important;margin:0 !important;`;
+
+        const dialog = document.createElement('dialog');
+        dialog.id = 'reddit-dl-title-prompt';
+        dialog.setAttribute('aria-labelledby', 'reddit-dl-title-prompt-heading');
+        dialog.style.cssText = [
+            'position:fixed !important', 'inset:0 !important', 'margin:auto !important',
+            'display:block !important', 'box-sizing:border-box !important',
+            'width:min(480px,calc(100% - 32px)) !important', 'max-width:none !important',
+            'height:fit-content !important', 'padding:24px 24px 20px !important',
+            'border:none !important', 'border-radius:18px !important',
+            'background:#fff !important', 'color:#1f2330 !important',
+            'box-shadow:0 20px 60px rgba(0,0,0,0.35) !important',
+            `font-family:${font} !important`, 'text-align:left !important'
+        ].join(';');
+        dialog.innerHTML = `
+            <style>
+                #reddit-dl-title-prompt::backdrop { background: rgba(20,20,28,0.6); backdrop-filter: blur(4px); }
+                #reddit-dl-title-prompt input:focus {
+                    outline: none !important; border-color: #FF4500 !important;
+                    box-shadow: 0 0 0 3px rgba(255,69,0,0.18) !important;
+                }
+            </style>
+            <h2 id="reddit-dl-title-prompt-heading" style="display:block !important;margin:0 0 8px !important;font:600 18px/1.3 ${font} !important;color:#1f2330 !important;">
+                Gallery title
+            </h2>
+            <p data-role="message" style="display:block !important;margin:0 0 14px !important;font:400 13px/1.5 ${font} !important;color:#5b6273 !important;white-space:pre-wrap !important;overflow-wrap:anywhere !important;"></p>
+            <input type="text" data-role="input" autocomplete="off" spellcheck="false" style="
+                display:block !important;width:100% !important;box-sizing:border-box !important;margin:0 !important;
+                padding:10px 12px !important;border:1.5px solid #d6d9e0 !important;border-radius:10px !important;
+                background:#fff !important;color:#1f2330 !important;font:400 15px/1.4 ${font} !important;">
+            <div style="display:flex !important;justify-content:flex-end !important;gap:10px !important;margin-top:18px !important;">
+                <button type="button" data-role="cancel" style="${btn}background:transparent !important;color:#5b6273 !important;border:1px solid #d6d9e0 !important;">Cancel</button>
+                <button type="button" data-role="ok" style="${btn}background:linear-gradient(135deg,#FF4500 0%,#FF8C00 100%) !important;color:#fff !important;border:none !important;">Download</button>
+            </div>
+        `;
+        // Text goes in via textContent / value, never innerHTML — titles are
+        // user content.
+        dialog.querySelector('[data-role="message"]').textContent = message;
+        const input = dialog.querySelector('[data-role="input"]');
+        input.value = defaultValue;
+
+        let done = false;
+        const finish = (value) => {
+            if (done) return;
+            done = true;
+            titlePromptOpen = false;
+            try { dialog.close(); } catch (_) { /* already closed */ }
+            dialog.remove();
+            resolve(value);
+        };
+
+        // Title typing must never reach Reddit's own hotkeys (J/K, /, …).
+        ['keydown', 'keyup', 'keypress'].forEach((type) => {
+            dialog.addEventListener(type, (e) => e.stopPropagation());
+        });
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.isComposing) {
+                e.preventDefault();
+                finish(input.value);
+            }
+        });
+        dialog.addEventListener('cancel', (e) => { // Esc
+            e.preventDefault();
+            finish(null);
+        });
+        const wireButton = (role, getValue) => {
+            dialog.querySelector(`[data-role="${role}"]`).addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                finish(getValue());
+            });
+        };
+        wireButton('ok', () => input.value);
+        wireButton('cancel', () => null);
+
+        document.body.appendChild(dialog);
+        try {
+            dialog.showModal();
+        } catch (e) {
+            console.warn('[RedditDL] title dialog could not open, using the browser prompt:', e);
+            dialog.remove();
+            resolve(window.prompt(message, defaultValue));
+            return;
+        }
+        titlePromptOpen = true;
+        input.focus();
+        input.select(); // like the native prompt: Enter keeps it, typing replaces it
+    });
+}
+
 let cachedSettings = null;
 
 // The <shreddit-post> the user most recently clicked inside (e.g. the post
@@ -509,10 +623,256 @@ function buildFallbackTitle(prefs) {
     return `Untitled${sep}${dateStr}${sep}${timeStr}`;
 }
 
+// Bumped whenever the content-script ↔ background message shape changes.
+// Chrome keeps running a cached background service worker until the
+// extension itself is reloaded on chrome://extensions, so a fresh content.js
+// can end up talking to a stale background.js that ignores the page-image
+// fallback. background.js echoes this number back; a mismatch gets one clear
+// console line instead of a mystery "No Images".
+const MESSAGE_PROTOCOL = 2;
+
+// Reddit shut off unauthenticated .json access in mid-2026. background.js
+// used to fetch the .json itself, but a service-worker fetch carries none of
+// the user's reddit.com cookies, so it was always refused (403). Fetching from
+// the Reddit tab is same-origin and carries the session — but in practice
+// Reddit refuses many logged-in tabs too, so treat .json as a bonus: the
+// page-reading path below (collectDomMedia / fetchPostPageMedia) is the main
+// route. Resolves to { post, status } — post is json[0].data.children[0].data
+// or null, status is 'ok' or a short failure code for the logs.
+async function fetchPostJson(postUrl) {
+    let jsonUrl;
+    try {
+        // Always hit the tab's own origin so the request stays same-origin
+        // (and keeps the session cookies) whatever host the permalink names.
+        const path = new URL(postUrl, window.location.origin).pathname.replace(/\/$/, '');
+        jsonUrl = window.location.origin + path + '.json';
+    } catch (_) {
+        return { post: null, status: 'bad_url' };
+    }
+    let res;
+    try {
+        res = await fetch(jsonUrl, { credentials: 'include', headers: { 'Accept': 'application/json' } });
+    } catch (e) {
+        console.warn('[RedditDL] post .json fetch threw:', e);
+        return { post: null, status: 'fetch_threw' };
+    }
+    if (!res.ok) {
+        // 401/403 is the normal answer now — log, don't warn, so it doesn't
+        // land on chrome://extensions › Errors looking like the failure.
+        console.log(`[RedditDL] post .json returned ${res.status} — reading images from the page instead.`);
+        return { post: null, status: `http_${res.status}` };
+    }
+    let json;
+    try {
+        json = await res.json();
+    } catch (e) {
+        console.warn('[RedditDL] post .json body was not JSON (login wall / challenge page?):', e);
+        return { post: null, status: 'json_parse_failed' };
+    }
+    const post = json && json[0] && json[0].data && json[0].data.children
+        && json[0].data.children[0] && json[0].data.children[0].data;
+    if (!post) return { post: null, status: 'unexpected_json_shape' };
+    return { post, status: 'ok' };
+}
+
+// Main route now that Reddit refuses most .json requests: read the image URLs
+// straight out of the <shreddit-post>. Gallery and image <img> tags point at
+// resized preview.redd.it copies named …/<slug>-v0-<mediaId>.<ext>?width=…;
+// the full-resolution original lives at i.redd.it/<mediaId>.<ext>, so we
+// rewrite to that and keep the largest preview as a fallback in case the
+// original 404s (background.js checks). Video / text / link posts are
+// skipped — their only images are thumbnails, and the .json path reports
+// "No Images" for those too.
+const DOM_SKIP_POST_TYPES = new Set(['video', 'text', 'self', 'link', 'poll']);
+const IMAGE_URL_RE = /\.(jpeg|jpg|png|gif|webp)(\?|$)/i;
+// i.redd.it/<id>.<ext> only — excludes /snoovatar/… avatars and
+// /award_images/… icons that share the host.
+const I_REDD_IT_MEDIA_PATH_RE = /^\/[a-z0-9]+\.(jpeg|jpg|png|gif|webp)$/i;
+
+function toOriginalMediaUrl(raw) {
+    if (!raw) return null;
+    let u;
+    try { u = new URL(raw, window.location.href); } catch (_) { return null; }
+    const host = u.hostname.toLowerCase();
+    if (host === 'i.redd.it') {
+        return I_REDD_IT_MEDIA_PATH_RE.test(u.pathname) ? `https://i.redd.it${u.pathname}` : null;
+    }
+    if (host === 'preview.redd.it') {
+        // The media id is whatever follows the last hyphen (the whole name
+        // when there's no slug), extension included.
+        const file = u.pathname.split('/').pop() || '';
+        const tail = file.slice(file.lastIndexOf('-') + 1);
+        return /^[a-z0-9]+\.(jpeg|jpg|png|gif|webp)$/i.test(tail) ? `https://i.redd.it/${tail}` : null;
+    }
+    return null;
+}
+
+// Largest candidate from a srcset ("url 640w, url 1080w, …"). Falls back to
+// the first entry when descriptors are missing.
+function largestSrcsetUrl(srcset) {
+    if (!srcset) return null;
+    let best = null;
+    let bestW = -1;
+    for (const part of srcset.split(',')) {
+        const [url, desc] = part.trim().split(/\s+/);
+        if (!url) continue;
+        const w = parseInt(desc, 10) || 0;
+        if (w > bestW) { best = url; bestW = w; }
+    }
+    return best;
+}
+
+function readDomPostMeta(post) {
+    const permalink = post.getAttribute('permalink') || window.location.pathname;
+    const id = (post.getAttribute('id') || '').replace(/^t3_/, '')
+        || ((permalink.match(/\/comments\/([a-z0-9]+)/i) || [])[1] || '');
+    const subreddit = post.getAttribute('subreddit-name')
+        || (post.getAttribute('subreddit-prefixed-name') || '').replace(/^r\//i, '')
+        || ((permalink.match(/\/r\/([^/]+)/i) || [])[1] || '');
+    const created = Date.parse(post.getAttribute('created-timestamp') || '');
+    return {
+        id,
+        subreddit,
+        author: post.getAttribute('author') || '',
+        created_utc: isNaN(created) ? null : created / 1000,
+        permalink
+    };
+}
+
+// Every <img> under root, including ones parked in <template>s until a
+// carousel reaches them.
+function imgsIn(root) {
+    const imgs = [...root.querySelectorAll('img')];
+    root.querySelectorAll('template').forEach((tpl) => {
+        if (tpl.content) imgs.push(...tpl.content.querySelectorAll('img'));
+    });
+    return imgs;
+}
+
+// { url: i.redd.it original, fallbackUrl: largest preview } for one <img>, or
+// null when it isn't post media (avatars, icons, other hosts). Slides not yet
+// shown carry their URL in data-lazy-src / data-lazy-srcset instead of src.
+function readImgMedia(img) {
+    const preview = largestSrcsetUrl(img.getAttribute('srcset'))
+        || largestSrcsetUrl(img.getAttribute('data-lazy-srcset'))
+        || img.getAttribute('src')
+        || img.getAttribute('data-lazy-src')
+        || img.getAttribute('data-src');
+    const original = toOriginalMediaUrl(img.getAttribute('src'))
+        || toOriginalMediaUrl(img.getAttribute('data-lazy-src'))
+        || toOriginalMediaUrl(img.getAttribute('data-src'))
+        || toOriginalMediaUrl(preview);
+    if (!original) return null;
+    let fallbackUrl = null;
+    try { fallbackUrl = new URL(preview, window.location.href).href; } catch (_) { /* keep null */ }
+    return { url: original, fallbackUrl: fallbackUrl !== original ? fallbackUrl : null };
+}
+
+// Resolves to { supported, postType, items: [{ url, fallbackUrl }],
+// slideCount, missingSlides, meta }, or null when there's no post element to
+// read (e.g. old.reddit.com).
+function collectDomMedia(post) {
+    if (!post) return null;
+    const postType = (post.getAttribute('post-type') || '').toLowerCase();
+    const supported = !DOM_SKIP_POST_TYPES.has(postType);
+    const items = [];
+    const seen = new Set();
+    const add = (url, fallbackUrl) => {
+        if (!url || seen.has(url)) return;
+        seen.add(url);
+        items.push({ url, fallbackUrl: fallbackUrl || null });
+    };
+
+    // Single-image posts carry the media URL directly. Mirrors the .json
+    // path's single-image rule, which applies to any non-video post.
+    const contentHref = post.getAttribute('content-href');
+    if (postType !== 'video' && contentHref && IMAGE_URL_RE.test(contentHref)) {
+        add(toOriginalMediaUrl(contentHref) || contentHref, null);
+    }
+
+    let slideCount = 0;
+    let missingSlides = 0;
+    if (supported) {
+        // Galleries: <shreddit-async-loader bundlename="gallery_carousel">
+        // → <gallery-carousel> → <ul><li> per slide. Reading slide by slide
+        // keeps gallery order and ignores every other image in the post.
+        const slides = [...post.querySelectorAll('gallery-carousel li')];
+        slideCount = slides.length;
+        for (const li of slides) {
+            const media = imgsIn(li).map(readImgMedia).find(Boolean);
+            if (media) add(media.url, media.fallbackUrl);
+            else missingSlides++;
+        }
+        // Single images (<shreddit-media-lightbox-listener> → <img>) and
+        // anything unrecognised: every post <img>, in document order. The
+        // blurred backdrop reuses the main image and dedupes away.
+        if (items.length === 0) {
+            for (const img of imgsIn(post)) {
+                const media = readImgMedia(img);
+                if (media) add(media.url, media.fallbackUrl);
+            }
+        }
+    }
+
+    return { supported, postType, items, slideCount, missingSlides, meta: readDomPostMeta(post) };
+}
+
+// Backup for when the live post comes up short (a feed/lightbox post whose
+// carousel hasn't rendered every slide, or no <shreddit-post> found at all):
+// fetch the post's own page same-origin and read the server-rendered markup.
+// Only for /comments/<id> URLs, and only a <shreddit-post> with that exact id
+// is accepted — never "the first post on the page".
+async function fetchPostPageMedia(postUrl) {
+    let path;
+    try {
+        path = new URL(postUrl, window.location.origin).pathname.replace(/\/?$/, '/');
+    } catch (_) {
+        return { media: null, status: 'bad_url' };
+    }
+    const wantId = ((path.match(/\/comments\/([a-z0-9]+)/i) || [])[1] || '').toLowerCase();
+    if (!wantId) return { media: null, status: 'no_post_id' };
+    let html;
+    try {
+        const res = await fetch(window.location.origin + path, { credentials: 'include', headers: { 'Accept': 'text/html' } });
+        if (!res.ok) return { media: null, status: `http_${res.status}` };
+        html = await res.text();
+    } catch (e) {
+        return { media: null, status: 'fetch_threw' };
+    }
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const post = [...doc.querySelectorAll('shreddit-post')].find((p) => {
+        const id = (p.getAttribute('id') || '').replace(/^t3_/i, '').toLowerCase();
+        const permaId = ((p.getAttribute('permalink') || '').match(/\/comments\/([a-z0-9]+)/i) || [])[1] || '';
+        return id === wantId || permaId.toLowerCase() === wantId;
+    });
+    if (!post) return { media: null, status: 'post_not_in_html' };
+    return { media: collectDomMedia(post), status: 'ok' };
+}
+
+// String-only snapshot of a post for the "no images" log line.
+// chrome://extensions › Errors flattens objects to "[object Object]", so this
+// is what makes a screenshot of that page diagnosable.
+function describePostForLog(post) {
+    if (!post) return 'no <shreddit-post> found for this page';
+    const imgs = imgsIn(post);
+    return JSON.stringify({
+        id: post.getAttribute('id'),
+        postType: post.getAttribute('post-type'),
+        contentHref: post.getAttribute('content-href'),
+        hasGalleryCarousel: !!post.querySelector('gallery-carousel'),
+        slides: post.querySelectorAll('gallery-carousel li').length,
+        imgCount: imgs.length,
+        imgSrcs: imgs.slice(0, 5).map((i) => (i.getAttribute('src') || i.getAttribute('data-lazy-src') || '').slice(0, 120))
+    });
+}
+
 function attachClickHandler(btn) {
     btn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
+        // The title dialog is modal but, unlike window.prompt, doesn't freeze
+        // script — don't stack a second one (e.g. a programmatic click).
+        if (titlePromptOpen) return;
 
         // Find the active post ONCE and use it for both title and URL —
         // they used to be derived independently (title from DOM, URL from
@@ -551,18 +911,56 @@ function attachClickHandler(btn) {
             href: window.location.href
         });
 
-        const executeDownload = (finalTitle) => {
+        const executeDownload = async (finalTitle) => {
             // Mark the button busy so applyButtonAppearance won't overwrite the
             // loading/done message if the user saves popup settings mid-fetch.
             btn.dataset.busy = 'true';
             btn.innerHTML = getLoadingText();
 
-            console.log('[RedditDL] sending fetchAndDownload to background', { url: currentUrl, finalTitle });
+            // Post data is gathered here, in the Reddit tab, rather than in
+            // background.js — see fetchPostJson for why. The DOM read is
+            // cheap and always sent, so background can fall back to it when
+            // the .json is refused or yields no images.
+            const { post, status: jsonStatus } = await fetchPostJson(currentUrl);
+            let domMedia = null;
+            let pageStatus = null;
+            try {
+                domMedia = collectDomMedia(activePost);
+                const liveShort = !domMedia
+                    || (domMedia.supported && (domMedia.items.length === 0 || domMedia.missingSlides > 0));
+                if (!post && liveShort) {
+                    const page = await fetchPostPageMedia(currentUrl);
+                    pageStatus = page.status;
+                    if (page.media && page.media.items.length > (domMedia ? domMedia.items.length : 0)) {
+                        domMedia = page.media;
+                    }
+                }
+            } catch (e) {
+                // Never let a DOM surprise strand the button on "Downloading…".
+                console.warn('[RedditDL] reading images from the page failed:', e);
+            }
+            if (!post && !(domMedia && domMedia.items.length)) {
+                console.warn(`[RedditDL] no images found on the page — .json: ${jsonStatus}, ` +
+                    `post page: ${pageStatus}, live post: ${describePostForLog(activePost)}`);
+            }
+
+            console.log('[RedditDL] sending fetchAndDownload to background', {
+                url: currentUrl,
+                finalTitle,
+                jsonStatus,
+                pageStatus,
+                domPostType: domMedia ? domMedia.postType : null,
+                domImageCount: domMedia ? domMedia.items.length : null
+            });
             const sendStart = Date.now();
             chrome.runtime.sendMessage({
                 action: "fetchAndDownload",
+                protocol: MESSAGE_PROTOCOL,
                 url: currentUrl,
-                title: finalTitle
+                title: finalTitle,
+                post,
+                jsonStatus,
+                domMedia
             }, (response) => {
                 const elapsed = Date.now() - sendStart;
                 // chrome.runtime.lastError fires here when the background
@@ -571,6 +969,11 @@ function attachClickHandler(btn) {
                 // found 0 images". Keep them distinguishable in the console.
                 if (chrome.runtime.lastError) {
                     console.error('[RedditDL] sendMessage failed after', elapsed, 'ms:', chrome.runtime.lastError.message);
+                }
+                if (response && response.protocol !== MESSAGE_PROTOCOL) {
+                    console.error('[RedditDL] The extension\'s background script is an older version than this page ' +
+                        'script, so it ignores the images read from the page. Open chrome://extensions, click the ' +
+                        'reload icon on "Reddit Picture Gallery Downloader", then refresh this tab.');
                 }
                 const themeNow = btn.getAttribute('data-theme') || 'theme-native';
                 if (response && response.success) {
@@ -584,7 +987,8 @@ function attachClickHandler(btn) {
                         showMilestoneOverlay(response.milestone, response.totalFiles || response.milestone);
                     }
                 } else {
-                    console.warn('[RedditDL] download cycle reported NO IMAGES / failure', { elapsedMs: elapsed, response });
+                    console.warn('[RedditDL] download cycle reported NO IMAGES / failure ' +
+                        JSON.stringify({ elapsedMs: elapsed, response }));
                     btn.innerHTML = getFailText(themeNow);
                 }
                 setTimeout(() => {
@@ -631,11 +1035,12 @@ function attachClickHandler(btn) {
                 const message =
                     `Default title:\n${promptDefault}\n\n` +
                     `Enter a custom title for this gallery (or press Enter to keep the default):`;
-                const input = window.prompt(message, promptDefault);
-                if (input !== null) {
-                    let typed = input.trim() || "Untitled_Gallery";
-                    cb(typed.replace(/[\\/:*?"<>|]/g, ""));
-                }
+                showTitlePrompt(message, promptDefault).then((input) => {
+                    if (input !== null) {
+                        let typed = input.trim() || "Untitled_Gallery";
+                        cb(typed.replace(/[\\/:*?"<>|]/g, ""));
+                    }
+                });
             };
 
             if (isPromptEnabled) {

@@ -138,8 +138,10 @@ Cross-check: open `chrome://extensions` → click **service worker** under your 
 ## 10. Title prompt
 
 - [ ] Enable **Prompt for Custom Title before downloading** in Options. Save.
-- [ ] Click Download on any post. → Browser's native prompt opens, pre-filled with the post's title.
-- [ ] While the prompt is open, try Reddit shortcuts (J, K, /). → They do NOT do anything. The native prompt blocks page-level keystrokes.
+- [ ] Click Download on any post. → The extension's "Gallery title" dialog opens, pre-filled with the post's title (fully selected). It sits above Reddit's lightbox too.
+- [ ] While the dialog is open, try Reddit shortcuts (J, K, /). → They do NOT do anything. The dialog keeps keystrokes from reaching Reddit.
+- [ ] **Paste keeps spaces (Joe's report, 2026-10-21).** Copy ` by Some Photographer` (leading space). In the dialog, press End and paste. → Field reads `Some Subject by Some Photographer`, and the saved file uses that title. Chrome's old native `window.prompt` trimmed pasted text, which produced `Some Subjectby Some Photographer`.
+- [ ] While the dialog is open, press Alt+Shift+D. → No second dialog appears.
 - [ ] Press Enter without changing anything. → File saves with the original title.
 - [ ] Try again, type a custom name. → File saves with custom name.
 - [ ] Try again, press Esc. → Download cancels. The button returns to ready state without leaving "Downloading..." stuck.
@@ -523,6 +525,20 @@ For a crossposted gallery, Reddit's API leaves `media_metadata` empty on the cro
 - [ ] If the ZIP exceeds 100MB pre-compression, a warning prints: "chrome.downloads may reject data: URLs this large — consider Folder mode for very large galleries."
 - [ ] In **Folder Mode**, downloading a single very large WebP image (>25MB source) should log: "Skipping WebP→JPEG re-encode: source is XMB; saving original .webp."
 - [ ] If `chrome.downloads.download` rejects any URL, `startDownload` now prints the error message and the encoded data-URL size — no more silent zero-success.
+
+---
+
+## 27. Reddit `.json` lockdown fix — added 2026-10-14, revised 2026-10-21
+
+Reddit stopped serving `.json` to anonymous requests in mid-2026, and in practice it refuses many logged-in tabs too. The extension now reads the images straight from the post page. It tries three sources in order: the `.json` (used if Reddit allows it), the live `<shreddit-post>`, then the post's own HTML page. `.json` returning 403 is expected and no longer means failure.
+
+- [ ] **Before testing:** on `chrome://extensions`, click the reload ↻ icon on the extension card, then **Errors → Clear all**, then refresh the Reddit tab. Chrome keeps running the old background script until that reload. A page console line saying *"background script is an older version than this page script"* means this step was skipped.
+- [ ] **Gallery (4+ images)** → all images saved, in gallery order. Page console: `jsonStatus` is `"ok"` or `"http_403"`, and `domImageCount` matches the gallery size. Service-worker console: either `using post JSON fetched by the content script` or `using N image(s) read from the page`. Page-read files are full-resolution `i.redd.it` originals, not 640px previews.
+- [ ] **Swipe-heavy gallery (10+ images)**: download without swiping through the carousel first. → Count matches the gallery size. A short count with `pageStatus: "ok"` means even the server HTML lacks some slides. Inspect a later `<li>` in `gallery-carousel` and teach `readImgMedia` its attribute.
+- [ ] **Single-image post** → 1 image saved.
+- [ ] **Video post / text post** → "❌ No Images".
+- [ ] **Lightbox from feed** → downloads the clicked post, same as §26.2.
+- [ ] **If anything shows "No Images" on a gallery:** the page console line `[RedditDL] no images found on the page — .json: …, post page: …, live post: {…}` holds the post type, slide count and the first image URLs. Copy that line into the bug report.
 
 ---
 

@@ -4,6 +4,8 @@ if (typeof importScripts !== 'undefined') {
 
 const MAX_NAME_LENGTH = 110;
 const PLACEHOLDER_TITLE = 'No Title';
+// Keep in sync with MESSAGE_PROTOCOL in content.js.
+const MESSAGE_PROTOCOL = 2;
 
 const generateBase36Hash = () => Math.random().toString(36).substring(2, 10);
 const cleanName = (str) => str.replace(/[<>:"/\\|?*]/g, '-').trim();
@@ -211,7 +213,10 @@ const buildNameString = (pills, data, sepChar, missingTitleRule, customPlacehold
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "fetchAndDownload") {
-        executeGalleryDownload(request.url, request.title, sendResponse);
+        // Echo the message protocol so content.js can spot a stale background
+        // (see MESSAGE_PROTOCOL in content.js).
+        const reply = (r) => sendResponse(Object.assign({ protocol: MESSAGE_PROTOCOL }, r));
+        executeGalleryDownload(request.url, request.title, reply, request);
         return true;
     }
 });
@@ -267,7 +272,67 @@ chrome.runtime.onInstalled.addListener((details) => {
     }
 });
 
-async function executeGalleryDownload(redditUrl, cleanPromptTitle, sendResponse) {
+// Last-resort .json fetch from the service worker. Since Reddit shut off
+// unauthenticated .json access (mid-2026) the content script does this fetch
+// from the Reddit tab, where the user's session applies — see fetchPostJson in
+// content.js. We only get here when the tab never got an HTTP answer at all
+// (network error, unparseable body) or a caller sent no post data.
+// credentials:'include' so the reddit.com session cookies go along; without
+// it this request is anonymous and Reddit answers 403.
+async function fetchPostJsonFromBackground(redditUrl, tag) {
+    const fetchUrl = redditUrl + '.json';
+    console.log(tag, 'fetching', fetchUrl);
+    let response;
+    try {
+        response = await fetch(fetchUrl, { credentials: 'include', headers: { 'Accept': 'application/json' } });
+    } catch (netErr) {
+        console.error(tag, 'fetch threw — likely network error / blocked / offline:', netErr);
+        return { post: null, status: 'fetch_threw' };
+    }
+    console.log(tag, 'fetch returned', {
+        status: response.status,
+        ok: response.ok,
+        contentType: response.headers.get('content-type')
+    });
+    if (!response.ok) {
+        console.error(tag, `Reddit JSON endpoint returned non-OK status ${response.status}` +
+            (response.status === 401 || response.status === 403 ? ' — Reddit only serves .json to logged-in sessions.' : '.'));
+        return { post: null, status: `http_${response.status}` };
+    }
+
+    let json;
+    try {
+        json = await response.json();
+    } catch (parseErr) {
+        console.error(tag, 'response.json() failed — body was probably HTML (rate limit / login wall):', parseErr);
+        return { post: null, status: 'json_parse_failed' };
+    }
+
+    if (!json || !Array.isArray(json) || !json[0] || !json[0].data || !Array.isArray(json[0].data.children) || !json[0].data.children[0]) {
+        console.error(tag, 'unexpected JSON shape from Reddit (missing data.children[0]):', json);
+        return { post: null, status: 'unexpected_json_shape' };
+    }
+    return { post: json[0].data.children[0].data, status: 'ok' };
+}
+
+// content.js rewrites page previews to their i.redd.it originals by media id.
+// i.redd.it 404s if the extension guess is wrong, so check each original with
+// a HEAD and fall back to the preview the page was actually showing.
+async function resolveDomMediaUrls(items, tag) {
+    return Promise.all(items.map(async (item) => {
+        if (!item.fallbackUrl) return item.url;
+        try {
+            const res = await fetch(item.url, { method: 'HEAD' });
+            if (res.ok) return item.url;
+            console.warn(tag, `original ${item.url} returned ${res.status}; using the page's preview image instead`);
+        } catch (e) {
+            console.warn(tag, `HEAD ${item.url} threw; using the page's preview image instead`, e);
+        }
+        return item.fallbackUrl;
+    }));
+}
+
+async function executeGalleryDownload(redditUrl, cleanPromptTitle, sendResponse, pageData) {
     // Tag every log line with a short request id so a user with multiple
     // tabs / rapid-fire clicks can untangle which "No Images" line belongs
     // to which click. Use the URL tail as the id since it's unique per post
@@ -275,51 +340,51 @@ async function executeGalleryDownload(redditUrl, cleanPromptTitle, sendResponse)
     const reqId = (redditUrl.match(/\/comments\/([a-z0-9]+)/i) || [])[1] || 'unknown';
     const tag = `[RedditDL ${reqId}]`;
     const reqStart = Date.now();
-    console.log(tag, 'executeGalleryDownload start', { redditUrl, cleanPromptTitle });
+    pageData = pageData || {};
+    console.log(tag, 'executeGalleryDownload start', { redditUrl, cleanPromptTitle, jsonStatus: pageData.jsonStatus });
 
     try {
-        const fetchUrl = redditUrl + '.json';
-        console.log(tag, 'fetching', fetchUrl);
-        let response;
-        try {
-            response = await fetch(fetchUrl);
-        } catch (netErr) {
-            console.error(tag, 'fetch threw — likely network error / blocked / offline:', netErr);
-            sendResponse({ success: false, count: 0, reason: 'fetch_threw' });
-            return;
-        }
-        console.log(tag, 'fetch returned', {
-            status: response.status,
-            ok: response.ok,
-            contentType: response.headers.get('content-type')
-        });
-        if (!response.ok) {
-            console.error(tag, `Reddit JSON endpoint returned non-OK status ${response.status}; aborting (no images path).`);
-            sendResponse({ success: false, count: 0, reason: `http_${response.status}` });
-            return;
+        const domMedia = (pageData.domMedia && Array.isArray(pageData.domMedia.items)) ? pageData.domMedia : null;
+        let jsonStatus = pageData.jsonStatus || null;
+        let post = (pageData.post && typeof pageData.post === 'object') ? pageData.post : null;
+
+        if (post) {
+            console.log(tag, 'using post JSON fetched by the content script');
+        } else if (!/^http_/.test(jsonStatus || '')) {
+            const result = await fetchPostJsonFromBackground(redditUrl, tag);
+            post = result.post;
+            jsonStatus = result.status;
+        } else {
+            console.log(tag, `content script's .json request was refused (${jsonStatus}) — using the images it read from the page.`);
         }
 
-        let json;
-        try {
-            json = await response.json();
-        } catch (parseErr) {
-            console.error(tag, 'response.json() failed — body was probably HTML (rate limit / login wall):', parseErr);
-            sendResponse({ success: false, count: 0, reason: 'json_parse_failed' });
-            return;
+        // No .json (the usual case now) — build the post from what the
+        // page itself shows. Naming pills only need subreddit / author /
+        // created_utc, which content.js read off the <shreddit-post>.
+        let source = 'json';
+        if (!post) {
+            if (!domMedia || domMedia.items.length === 0) {
+                // Stringified: chrome://extensions › Errors shows objects as
+                // "[object Object]". content.js logs the page-side detail.
+                console.error(tag, 'no post JSON and no images readable from the page ' + JSON.stringify({
+                    jsonStatus,
+                    domPostType: domMedia ? domMedia.postType : null,
+                    domSlides: domMedia ? domMedia.slideCount : null
+                }));
+                sendResponse({ success: false, count: 0, reason: jsonStatus || 'no_post_data' });
+                return;
+            }
+            console.log(tag, `no post JSON (${jsonStatus}) — using ${domMedia.items.length} image(s) read from the page`);
+            post = domMedia.meta || {};
+            source = 'dom';
         }
 
-        if (!json || !Array.isArray(json) || !json[0] || !json[0].data || !Array.isArray(json[0].data.children) || !json[0].data.children[0]) {
-            console.error(tag, 'unexpected JSON shape from Reddit (missing data.children[0]):', json);
-            sendResponse({ success: false, count: 0, reason: 'unexpected_json_shape' });
-            return;
-        }
-
-        const post = json[0].data.children[0].data;
         // High-signal post summary up front. Anything past this point that
         // still ends in "No Images" can be cross-referenced against this
         // dump to figure out *why* — gallery vs single-image, removed,
         // crosspost, video, etc.
         console.log(tag, 'post summary', {
+            source,
             id: post.id,
             subreddit: post.subreddit,
             author: post.author,
@@ -401,9 +466,11 @@ async function executeGalleryDownload(redditUrl, cleanPromptTitle, sendResponse)
 
         let imageUrls = [];
         const skipReasons = [];
-        const topLevel = extractImageUrls(post, 'top-level post');
-        imageUrls = topLevel.urls;
-        skipReasons.push(...topLevel.reasons);
+        if (source === 'json') {
+            const topLevel = extractImageUrls(post, 'top-level post');
+            imageUrls = topLevel.urls;
+            skipReasons.push(...topLevel.reasons);
+        }
 
         // Crosspost fallback. For a crossposted gallery, gallery_data /
         // media_metadata live on the original post in crosspost_parent_list[0],
@@ -432,6 +499,17 @@ async function executeGalleryDownload(redditUrl, cleanPromptTitle, sendResponse)
             skipReasons.push(...parentResult.reasons);
         }
 
+        // Page-image path: the only source when there's no .json, and a
+        // safety net when the .json parses but yields nothing usable.
+        // content.js already skips video/text/link posts, so this doesn't
+        // turn their thumbnails into "downloads".
+        if (imageUrls.length === 0 && domMedia && domMedia.items.length) {
+            if (source === 'json') {
+                console.log(tag, `JSON yielded 0 images — using ${domMedia.items.length} image(s) read from the page`);
+            }
+            imageUrls = await resolveDomMediaUrls(domMedia.items, tag);
+        }
+
         if (skipReasons.length) {
             console.warn(tag, `skipped ${skipReasons.length} gallery item(s):`, skipReasons);
         }
@@ -441,7 +519,8 @@ async function executeGalleryDownload(redditUrl, cleanPromptTitle, sendResponse)
             // Final breadcrumb before the failure path. Dump the fields most
             // useful for diagnosis without dumping the entire ~30KB post
             // object (which would crowd the console).
-            console.error(tag, 'NO IMAGES FOUND — emitting failure response. Diagnostic snapshot:', {
+            console.error(tag, 'NO IMAGES FOUND — emitting failure response. Diagnostic snapshot: ' + JSON.stringify({
+                source,
                 is_gallery: !!post.is_gallery,
                 media_metadata_keys: post.media_metadata ? Object.keys(post.media_metadata) : null,
                 gallery_data: post.gallery_data || null,
@@ -450,7 +529,7 @@ async function executeGalleryDownload(redditUrl, cleanPromptTitle, sendResponse)
                 post_hint: post.post_hint,
                 removed_by_category: post.removed_by_category || null,
                 skipReasons
-            });
+            }));
             sendResponse({ success: false, count: 0, reason: 'no_images_resolved' });
             return;
         }
