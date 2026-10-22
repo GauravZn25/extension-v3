@@ -6,7 +6,7 @@
     },
     "manifest_version": 3,
     "name": "Reddit Picture Gallery Downloader",
-    "version": "3.0",
+    "version": "3.2",
     "description": "One-click high-res download for Reddit galleries.",
     "host_permissions": [
         "*://*.reddit.com/*",
